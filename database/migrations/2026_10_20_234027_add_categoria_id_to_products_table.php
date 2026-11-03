@@ -8,15 +8,14 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('products', function (Blueprint $table) {
-            // Agregamos la columna categoria_id (que es la que usa el sistema nuevo)
-            $table->foreignId('categoria_id')->nullable()->after('nombre')->constrained('categories')->nullOnDelete();
+            // Se agrega la columna pero sin la restricción foránea aquí
+            $table->foreignId('categoria_id')->nullable()->after('nombre');
         });
     }
 
     public function down(): void
     {
         Schema::table('products', function (Blueprint $table) {
-            $table->dropForeign(['categoria_id']);
             $table->dropColumn('categoria_id');
         });
     }

@@ -6,7 +6,16 @@
 <div x-data="{ 
     pagoModal: {{ $errors->any() ? 'true' : 'false' }}, 
     deleteModal: false,
-    deleteAction: ''
+    deleteAction: '',
+    
+    // Variables para el Dropdown de Barbero (Filtro)
+    openBarberFiltro: false,
+    selectedBarberId: '{{ $barberId ?? '' }}',
+    selectedBarberName: '{{ $barberId ? $barbers->firstWhere('id', $barberId)?->nombre : 'Todos los barberos' }}',
+    
+    // Variables para el Dropdown de Barbero (Modal)
+    openBarberModal: false,
+    selectedBarberPago: ''
 }">
 
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
@@ -15,12 +24,12 @@
             <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Registro de salidas de dinero por comisiones o salarios.</p>
         </div>
 
-        <button x-on:click="pagoModal = true" class="w-full sm:w-auto bg-barber-accent hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm shrink-0">
+        <!-- Botón solo visible en PC -->
+        <button x-on:click="pagoModal = true" class="hidden md:flex bg-barber-accent hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-xl transition-all items-center justify-center gap-2 shadow-sm shrink-0">
             <i data-lucide="user-check" class="w-5 h-5"></i> Registrar Pago
         </button>
     </div>
 
-    <!-- CARTEL DE ERRORES -->
     @if ($errors->any())
     <div class="mb-6 rounded-xl bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 text-sm flex items-start gap-2">
         <i data-lucide="alert-circle" class="w-5 h-5 shrink-0 mt-0.5"></i>
@@ -35,48 +44,61 @@
     </div>
     @endif
 
-    <!-- FILTROS DE BÚSQUEDA (NUEVO) -->
+    <!-- FILTROS DE BÚSQUEDA -->
     <div class="bg-white dark:bg-barber-card-dark rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/50 p-4 mb-6">
         <form action="{{ route('app.cash.pagos') }}" method="GET" class="flex flex-col md:flex-row gap-4 items-end">
 
-            <!-- Fecha Inicio -->
-            <div class="w-full md:w-1/4">
-                <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Fecha Inicio</label>
-                <input type="text" name="fecha_inicio" id="fecha_inicio" value="{{ $fechaInicio }}" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent">
+            <div class="flex-1 w-full">
+                <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Rango de Fechas</label>
+                <div class="relative">
+                    <i data-lucide="calendar" class="w-5 h-5 absolute left-3 top-3 text-slate-400"></i>
+                    <input type="text" id="rango-fechas-pagos" name="rango" value="{{ $rango ?? '' }}" placeholder="Selecciona un rango de fechas..." class="w-full pl-10 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2.5 focus:ring-2 focus:ring-barber-accent text-base">
+                </div>
             </div>
 
-            <!-- Fecha Fin -->
-            <div class="w-full md:w-1/4">
-                <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Fecha Fin</label>
-                <input type="text" name="fecha_fin" id="fecha_fin" value="{{ $fechaFin }}" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent">
-            </div>
+            <!-- Dropdown Barbero (Filtro) -->
+            <div class="w-full md:w-auto relative" @click.away="openBarberFiltro = false">
+                <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Barbero</label>
+                <input type="hidden" name="barber_id" :value="selectedBarberId">
 
-            <!-- Barbero -->
-            <div class="w-full md:w-auto flex-1">
-                <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Barbero (Opcional)</label>
-                <select name="barber_id" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent">
-                    <option value="">Todos los barberos</option>
+                <button type="button" @click="openBarberFiltro = !openBarberFiltro" class="w-full md:w-56 flex justify-between items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-4 py-2.5 focus:ring-2 focus:ring-barber-accent text-base transition-colors">
+                    <span x-text="selectedBarberName"></span>
+                    <i data-lucide="chevron-down" class="w-5 h-5 text-slate-400 transition-transform" :class="openBarberFiltro ? 'rotate-180' : ''"></i>
+                </button>
+
+                <div x-show="openBarberFiltro" x-transition.opacity x-cloak class="absolute z-50 w-full md:w-56 mt-1 bg-white dark:bg-barber-card-dark rounded-xl shadow-lg border border-slate-200 dark:border-slate-700/50 py-1 max-h-60 overflow-y-auto">
+                    <button type="button" @click="selectedBarberId = ''; selectedBarberName = 'Todos los barberos'; openBarberFiltro = false" class="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                        Todos los barberos
+                    </button>
                     @foreach($barbers as $barber)
-                    <option value="{{ $barber->id }}" {{ $barberId == $barber->id ? 'selected' : '' }}>{{ $barber->nombre }}</option>
+                    <button type="button" @click="selectedBarberId = '{{ $barber->id }}'; selectedBarberName = '{{ addslashes($barber->nombre) }}'; openBarberFiltro = false" class="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                        {{ $barber->nombre }}
+                    </button>
                     @endforeach
-                </select>
+                </div>
             </div>
 
-            <button type="submit" class="w-full md:w-auto bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-medium py-2 px-6 rounded-lg transition-all flex items-center justify-center gap-2">
-                <i data-lucide="filter" class="w-4 h-4"></i> Filtrar
-            </button>
-
-            <a href="{{ route('app.cash.pagos') }}" class="w-full md:w-auto text-sm font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white py-2 px-4 text-center">Limpiar</a>
+            <div class="flex gap-2 w-full md:w-auto">
+                <button type="submit" class="flex-1 md:flex-none bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-medium py-2.5 px-6 rounded-xl transition-all flex items-center justify-center gap-2">
+                    <i data-lucide="filter" class="w-4 h-4"></i> Filtrar
+                </button>
+                @if(request('rango') || request('barber_id'))
+                <a href="{{ route('app.cash.pagos') }}" class="flex-1 md:flex-none text-sm font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white py-2.5 px-4 text-center bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center">Limpiar</a>
+                @endif
+            </div>
         </form>
     </div>
 
     <!-- Tarjeta de Total -->
-    <div class="bg-white dark:bg-barber-card-dark rounded-xl p-6 border border-slate-200 dark:border-slate-700/50 shadow-sm mb-6">
+    <div class="bg-white dark:bg-barber-card-dark rounded-2xl p-5 border border-slate-200 dark:border-slate-700/50 shadow-sm mb-6">
         <p class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Total pagado en el período</p>
         <p class="text-3xl font-bold text-slate-900 dark:text-white">${{ number_format($totalPagos, 2) }}</p>
     </div>
 
-    <div class="bg-white dark:bg-barber-card-dark rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/50 overflow-hidden">
+    <!-- ========================================== -->
+    <!-- VISTA ESCRITORIO (Tabla) -->
+    <!-- ========================================== -->
+    <div class="hidden md:block bg-white dark:bg-barber-card-dark rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/50 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
@@ -98,7 +120,6 @@
                             <div class="font-medium text-slate-900 dark:text-white">{{ $pago->descripcion }}</div>
                         </td>
                         <td class="px-6 py-4 font-bold text-slate-900 dark:text-white">
-                            <!-- SE QUITÓ EL SIGNO NEGATIVO AQUÍ -->
                             ${{ number_format($pago->monto, 2) }}
                         </td>
                         <td class="px-6 py-4 text-right">
@@ -123,6 +144,59 @@
         </div>
     </div>
 
+    <!-- ========================================== -->
+    <!-- VISTA MÓVIL (Tarjetas estilo App) -->
+    <!-- ========================================== -->
+    <div class="md:hidden space-y-3 pb-24">
+        @forelse ($pagos as $pago)
+        <div class="bg-white dark:bg-barber-card-dark rounded-2xl p-4 shadow-sm border border-slate-200 dark:border-slate-700/50 flex flex-col gap-3 relative overflow-hidden">
+
+            <!-- Header: Fecha y Monto -->
+            <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-700/50 pb-3">
+                <div class="flex flex-col gap-0.5">
+                    <span class="text-sm font-bold text-slate-900 dark:text-white">{{ $pago->created_at->format('d M, Y') }}</span>
+                    <span class="text-xs text-slate-500 flex items-center gap-1">
+                        <i data-lucide="clock" class="w-3 h-3"></i>
+                        {{ $pago->created_at->format('h:i A') }}
+                    </span>
+                </div>
+                <div class="text-xl font-extrabold text-slate-900 dark:text-white">
+                    ${{ number_format($pago->monto, 2) }}
+                </div>
+            </div>
+
+            <!-- Descripción -->
+            <div class="py-1">
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-0.5">Concepto:</p>
+                <p class="text-sm font-medium text-slate-700 dark:text-slate-300">{{ $pago->descripcion }}</p>
+            </div>
+
+            <!-- Acciones -->
+            <div class="flex justify-end mt-1 pt-3 border-t border-slate-100 dark:border-slate-700/50">
+                <form id="delete-form-mob-{{ $pago->id }}" action="{{ route('app.cash.delete', $pago->id) }}" method="POST" class="hidden">
+                    @csrf
+                </form>
+                <button type="button" onclick="if(confirm('¿Eliminar este pago?')) document.getElementById('delete-form-mob-{{ $pago->id }}').submit();" class="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-xl text-sm font-bold hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i> Eliminar
+                </button>
+            </div>
+        </div>
+        @empty
+        <div class="bg-white dark:bg-barber-card-dark rounded-2xl p-10 text-center border border-slate-200 dark:border-slate-700/50 flex flex-col items-center justify-center">
+            <div class="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+                <i data-lucide="user-check" class="w-8 h-8 text-slate-300 dark:text-slate-600"></i>
+            </div>
+            <h4 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Sin pagos</h4>
+            <p class="text-slate-500 dark:text-slate-400 text-sm">No hay pagos registrados en este período.</p>
+        </div>
+        @endforelse
+    </div>
+
+    <!-- BOTÓN FLOTANTE (FAB) SOLO PARA MÓVIL -->
+    <button x-on:click="pagoModal = true" class="md:hidden fixed bottom-6 right-6 w-14 h-14 bg-barber-accent hover:bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center z-40 transition-transform active:scale-95">
+        <i data-lucide="plus" class="w-6 h-6"></i>
+    </button>
+
     <!-- MODAL DE PAGO -->
     <div x-show="pagoModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div x-show="pagoModal" x-transition.opacity class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity"></div>
@@ -140,6 +214,8 @@
                 <form action="{{ route('app.cash.store-gasto') }}" method="POST" autocomplete="off">
                     @csrf
                     <input type="hidden" name="tipo" value="pago_barbero">
+                    <input type="hidden" name="descripcion" :value="selectedBarberPago ? 'Pago a ' + selectedBarberPago : ''">
+
                     <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700/50 flex justify-between items-center">
                         <h3 class="text-lg font-semibold text-slate-900 dark:text-white" id="modal-title">Pago a Barbero</h3>
                         <button type="button" x-on:click="pagoModal = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
@@ -148,31 +224,38 @@
                     </div>
 
                     <div class="px-6 py-4 space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Seleccionar Barbero *</label>
-                            <select name="descripcion" required class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent">
-                                <option value="" disabled selected hidden>— Seleccione el barbero —</option>
+                        <!-- Dropdown Barbero (Modal) -->
+                        <div class="relative" @click.away="openBarberModal = false">
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Seleccionar Barbero *</label>
+
+                            <button type="button" @click="openBarberModal = !openBarberModal" class="w-full flex justify-between items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-4 py-3 focus:ring-2 focus:ring-barber-accent text-base transition-colors">
+                                <span x-text="selectedBarberPago || '— Seleccione el barbero —'" :class="!selectedBarberPago ? 'text-slate-500' : ''"></span>
+                                <i data-lucide="chevron-down" class="w-5 h-5 text-slate-400 transition-transform" :class="openBarberModal ? 'rotate-180' : ''"></i>
+                            </button>
+
+                            <div x-show="openBarberModal" x-transition.opacity x-cloak class="absolute z-30 w-full mt-2 bg-white dark:bg-barber-card-dark border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl max-h-60 overflow-y-auto">
                                 @foreach($barbers as $barber)
-                                <option value="Pago a {{ $barber->nombre }}" {{ old('descripcion') == 'Pago a '.$barber->nombre ? 'selected' : '' }}>{{ $barber->nombre }}</option>
+                                <button type="button" @click="selectedBarberPago = '{{ addslashes($barber->nombre) }}'; openBarberModal = false" class="w-full text-left px-4 py-3 text-base text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-b border-slate-100 dark:border-slate-700/50 last:border-0">
+                                    {{ $barber->nombre }}
+                                </button>
                                 @endforeach
-                            </select>
-                        </div>
-
-                        <!-- NUEVO CAMPO: CONCEPTO -->
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Concepto / Nota (Opcional)</label>
-                            <input type="text" name="concepto" value="{{ old('concepto') }}" placeholder="Ej. Pago semanal, Comisión 5 cortes..." class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent">
+                            </div>
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Monto ($) *</label>
-                            <input type="number" step="0.01" name="monto" value="{{ old('monto') }}" required min="0.01" placeholder="0.00" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent">
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Concepto / Nota (Opcional)</label>
+                            <input type="text" name="concepto" value="{{ old('concepto') }}" placeholder="Ej. Pago semanal, Comisión 5 cortes..." class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-4 py-3 focus:ring-2 focus:ring-barber-accent text-base">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Monto ($) *</label>
+                            <input type="number" step="0.01" name="monto" value="{{ old('monto') }}" required min="0.01" placeholder="0.00" class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-4 py-3 focus:ring-2 focus:ring-barber-accent text-base">
                         </div>
                     </div>
 
-                    <div class="bg-slate-50 dark:bg-slate-800/50 px-6 py-4 flex justify-end gap-3 rounded-b-2xl">
-                        <button type="button" x-on:click="pagoModal = false" class="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Cancelar</button>
-                        <button type="submit" class="bg-barber-accent hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-xl transition-all shadow-sm flex items-center gap-2">
+                    <div class="bg-slate-50 dark:bg-slate-800/50 px-6 py-4 flex flex-col-reverse sm:flex-row justify-end gap-3 rounded-b-2xl">
+                        <button type="button" x-on:click="pagoModal = false" class="w-full sm:w-auto px-4 py-3 sm:py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-200 sm:bg-transparent dark:bg-slate-700 sm:dark:bg-transparent rounded-xl sm:rounded-none transition-colors">Cancelar</button>
+                        <button type="submit" :disabled="!selectedBarberPago" class="w-full sm:w-auto bg-barber-accent hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-3 sm:py-2 px-4 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2">
                             <i data-lucide="save" class="w-4 h-4"></i> Guardar Pago
                         </button>
                     </div>

@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
@@ -142,4 +143,28 @@
 
 .dark .flatpickr-time .numInputWrapper span.arrowDown:after {
     border-top-color: #cbd5e1 !important;
+}
+
+/* ==========================================
+   ANIMACIÓN DEL POSTE DE BARBERO
+   ========================================== */
+@keyframes barber-pole-scroll {
+    0% {
+        background-position: 0 0;
+    }
+
+    100% {
+        /* Movemos el fondo hacia la derecha para que las franjas fluyan hacia la izquierda */
+        background-position: 28px 0;
+    }
+}
+
+.animate-barber-pole {
+    background: repeating-linear-gradient(-45deg,
+            #3B82F6,
+            #3B82F6 14px,
+            #ffffff 14px,
+            #ffffff 28px);
+    /* Mantenemos el gradiente de -45deg, pero animamos el fondo positivamente */
+    animation: barber-pole-scroll 0.8s linear infinite;
 }

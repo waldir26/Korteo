@@ -15,12 +15,14 @@
     deleteAction: ''
 }">
 
+    <!-- Header Responsivo -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
             <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Clientes</h2>
             <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Gestiona el directorio de clientes de tu barbería.</p>
         </div>
-        <button x-on:click="openModal = true" class="w-full sm:w-auto bg-barber-accent hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm shrink-0">
+        <!-- Botón solo visible en PC -->
+        <button x-on:click="openModal = true" class="hidden md:flex bg-barber-accent hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-xl transition-all items-center justify-center gap-2 shadow-sm shrink-0">
             <i data-lucide="plus" class="w-5 h-5"></i>
             Nuevo Cliente
         </button>
@@ -32,20 +34,25 @@
             <div class="flex-1 w-full">
                 <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Buscar por nombre o teléfono</label>
                 <div class="relative">
-                    <i data-lucide="search" class="w-5 h-5 absolute left-3 top-2.5 text-slate-400"></i>
-                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Ej. Juan Pérez..." class="w-full pl-10 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent">
+                    <i data-lucide="search" class="w-5 h-5 absolute left-3 top-3 text-slate-400"></i>
+                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Ej. Juan Pérez..." class="w-full pl-10 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2.5 focus:ring-2 focus:ring-barber-accent text-base">
                 </div>
             </div>
-            <button type="submit" class="w-full md:w-auto bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-medium py-2 px-6 rounded-lg transition-all flex items-center justify-center gap-2">
-                <i data-lucide="search" class="w-4 h-4"></i> Buscar
-            </button>
-            @if(request('search'))
-            <a href="{{ route('app.clientes.index') }}" class="w-full md:w-auto text-sm font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white py-2 px-4 text-center">Limpiar</a>
-            @endif
+            <div class="flex gap-2 w-full md:w-auto">
+                <button type="submit" class="flex-1 md:flex-none bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-medium py-2.5 px-6 rounded-xl transition-all flex items-center justify-center gap-2">
+                    <i data-lucide="search" class="w-4 h-4"></i> Buscar
+                </button>
+                @if(request('search'))
+                <a href="{{ route('app.clientes.index') }}" class="flex-1 md:flex-none text-sm font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white py-2.5 px-4 text-center bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center">Limpiar</a>
+                @endif
+            </div>
         </form>
     </div>
 
-    <div class="bg-white dark:bg-barber-card-dark rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/50 overflow-hidden">
+    <!-- ========================================== -->
+    <!-- VISTA ESCRITORIO (Tabla) -->
+    <!-- ========================================== -->
+    <div class="hidden md:block bg-white dark:bg-barber-card-dark rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/50 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
@@ -93,8 +100,6 @@
                                 " class="p-2 text-slate-400 hover:text-barber-accent transition-colors" title="Editar">
                                     <i data-lucide="edit" class="w-4 h-4"></i>
                                 </button>
-
-                                <!-- Botón Eliminar -->
                                 <button type="button" x-on:click="
                                     deleteModal = true;
                                     deleteAction = '{{ route('app.clientes.delete', $client->id) }}';
@@ -122,6 +127,85 @@
         </div>
         @endif
     </div>
+
+    <!-- ========================================== -->
+    <!-- VISTA MÓVIL (Tarjetas estilo App) -->
+    <!-- ========================================== -->
+    <div class="md:hidden space-y-3 pb-24">
+        @forelse ($clients as $client)
+        <div class="bg-white dark:bg-barber-card-dark rounded-2xl p-4 shadow-sm border border-slate-200 dark:border-slate-700/50 flex flex-col gap-3 relative overflow-hidden">
+
+            <!-- Info Principal -->
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 font-bold text-xl border border-slate-200 dark:border-slate-700 shrink-0">
+                    {{ substr($client->nombre, 0, 1) }}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h3 class="font-bold text-slate-900 dark:text-white text-lg truncate">{{ $client->nombre }}</h3>
+                    <div class="flex flex-col gap-0.5 mt-1">
+                        @if($client->telefono)
+                        <p class="text-sm text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                            <i data-lucide="phone" class="w-3.5 h-3.5"></i> {{ $client->telefono }}
+                        </p>
+                        @endif
+                        @if($client->email)
+                        <p class="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1.5 truncate">
+                            <i data-lucide="mail" class="w-3.5 h-3.5"></i> {{ $client->email }}
+                        </p>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notas -->
+            @if($client->notas)
+            <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50">
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Notas:</p>
+                <p class="text-sm text-slate-700 dark:text-slate-300 line-clamp-2">{{ $client->notas }}</p>
+            </div>
+            @endif
+
+            <!-- Acciones -->
+            <div class="flex items-center gap-2 mt-1 pt-3 border-t border-slate-100 dark:border-slate-700/50">
+                <button x-on:click="
+                        editModal = true; 
+                        editAction = '{{ route('app.clientes.update', $client->id) }}';
+                        editNombre = '{{ addslashes($client->nombre) }}';
+                        editTelefono = '{{ $client->telefono }}';
+                        editEmail = '{{ $client->email }}';
+                        editNotas = '{{ addslashes($client->notas) }}';
+                    " class="flex-1 flex justify-center items-center gap-2 py-2 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                    <i data-lucide="edit" class="w-4 h-4"></i> Editar
+                </button>
+                <button type="button" x-on:click="
+                        deleteModal = true;
+                        deleteAction = '{{ route('app.clientes.delete', $client->id) }}';
+                    " class="flex-1 flex justify-center items-center gap-2 py-2 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-xl text-sm font-medium hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i> Eliminar
+                </button>
+            </div>
+        </div>
+        @empty
+        <div class="bg-white dark:bg-barber-card-dark rounded-2xl p-10 text-center border border-slate-200 dark:border-slate-700/50 flex flex-col items-center justify-center">
+            <div class="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+                <i data-lucide="users" class="w-8 h-8 text-slate-300 dark:text-slate-600"></i>
+            </div>
+            <h4 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Sin clientes</h4>
+            <p class="text-slate-500 dark:text-slate-400 text-sm">No se encontraron clientes.</p>
+        </div>
+        @endforelse
+
+        @if($clients->hasPages())
+        <div class="mt-4">
+            {{ $clients->links() }}
+        </div>
+        @endif
+    </div>
+
+    <!-- BOTÓN FLOTANTE (FAB) SOLO PARA MÓVIL -->
+    <button x-on:click="openModal = true" class="md:hidden fixed bottom-6 right-6 w-14 h-14 bg-barber-accent hover:bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center z-40 transition-transform active:scale-95">
+        <i data-lucide="plus" class="w-6 h-6"></i>
+    </button>
 
     <!-- MODAL DE CREACIÓN -->
     <div x-show="openModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
@@ -158,30 +242,30 @@
                         @endif
 
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nombre completo *</label>
-                            <input type="text" name="nombre" value="{{ old('nombre') }}" required placeholder="Ej. Juan Pérez" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent">
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Nombre completo *</label>
+                            <input type="text" name="nombre" value="{{ old('nombre') }}" required placeholder="Ej. Juan Pérez" class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-4 py-3 focus:ring-2 focus:ring-barber-accent text-base">
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Teléfono</label>
-                                <input type="text" name="telefono" value="{{ old('telefono') }}" placeholder="Opcional" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent">
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Teléfono</label>
+                                <input type="text" name="telefono" value="{{ old('telefono') }}" placeholder="Opcional" class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-4 py-3 focus:ring-2 focus:ring-barber-accent text-base">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Correo Electrónico</label>
-                                <input type="email" name="email" value="{{ old('email') }}" placeholder="Opcional" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent">
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Correo Electrónico</label>
+                                <input type="email" name="email" value="{{ old('email') }}" placeholder="Opcional" class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-4 py-3 focus:ring-2 focus:ring-barber-accent text-base">
                             </div>
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Notas o Preferencias</label>
-                            <textarea name="notas" rows="3" placeholder="Ej. Prefiere máquina 1 a los lados, es alérgico a X producto..." class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent"></textarea>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Notas o Preferencias</label>
+                            <textarea name="notas" rows="3" placeholder="Ej. Prefiere máquina 1 a los lados..." class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-4 py-3 focus:ring-2 focus:ring-barber-accent text-base"></textarea>
                         </div>
                     </div>
 
-                    <div class="bg-slate-50 dark:bg-slate-800/50 px-6 py-4 flex justify-end gap-3 rounded-b-2xl">
-                        <button type="button" x-on:click="openModal = false" class="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Cancelar</button>
-                        <button type="submit" class="bg-barber-accent hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-xl transition-all shadow-sm flex items-center gap-2">
+                    <div class="bg-slate-50 dark:bg-slate-800/50 px-6 py-4 flex flex-col-reverse sm:flex-row justify-end gap-3 rounded-b-2xl">
+                        <button type="button" x-on:click="openModal = false" class="w-full sm:w-auto px-4 py-3 sm:py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-200 sm:bg-transparent dark:bg-slate-700 sm:dark:bg-transparent rounded-xl sm:rounded-none transition-colors">Cancelar</button>
+                        <button type="submit" class="w-full sm:w-auto bg-barber-accent hover:bg-blue-600 text-white font-medium py-3 sm:py-2 px-4 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2">
                             <i data-lucide="save" class="w-4 h-4"></i>
                             Guardar
                         </button>
@@ -190,7 +274,6 @@
             </div>
         </div>
     </div>
-
     <!-- MODAL DE EDICIÓN -->
     <div x-show="editModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div x-show="editModal" x-transition.opacity class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity"></div>
@@ -226,30 +309,30 @@
                         @endif
 
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nombre completo *</label>
-                            <input type="text" name="nombre" x-model="editNombre" required class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent">
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Nombre completo *</label>
+                            <input type="text" name="nombre" x-model="editNombre" required class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-4 py-3 focus:ring-2 focus:ring-barber-accent text-base">
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Teléfono</label>
-                                <input type="text" name="telefono" x-model="editTelefono" placeholder="Opcional" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent">
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Teléfono</label>
+                                <input type="text" name="telefono" x-model="editTelefono" placeholder="Opcional" class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-4 py-3 focus:ring-2 focus:ring-barber-accent text-base">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Correo Electrónico</label>
-                                <input type="email" name="email" x-model="editEmail" placeholder="Opcional" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent">
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Correo Electrónico</label>
+                                <input type="email" name="email" x-model="editEmail" placeholder="Opcional" class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-4 py-3 focus:ring-2 focus:ring-barber-accent text-base">
                             </div>
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Notas o Preferencias</label>
-                            <textarea name="notas" x-model="editNotas" rows="3" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent"></textarea>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Notas o Preferencias</label>
+                            <textarea name="notas" x-model="editNotas" rows="3" class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-4 py-3 focus:ring-2 focus:ring-barber-accent text-base"></textarea>
                         </div>
                     </div>
 
-                    <div class="bg-slate-50 dark:bg-slate-800/50 px-6 py-4 flex justify-end gap-3 rounded-b-2xl">
-                        <button type="button" x-on:click="editModal = false" class="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Cancelar</button>
-                        <button type="submit" class="bg-barber-accent hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-xl transition-all shadow-sm flex items-center gap-2">
+                    <div class="bg-slate-50 dark:bg-slate-800/50 px-6 py-4 flex flex-col-reverse sm:flex-row justify-end gap-3 rounded-b-2xl">
+                        <button type="button" x-on:click="editModal = false" class="w-full sm:w-auto px-4 py-3 sm:py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-200 sm:bg-transparent dark:bg-slate-700 sm:dark:bg-transparent rounded-xl sm:rounded-none transition-colors">Cancelar</button>
+                        <button type="submit" class="w-full sm:w-auto bg-barber-accent hover:bg-blue-600 text-white font-medium py-3 sm:py-2 px-4 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2">
                             <i data-lucide="save" class="w-4 h-4"></i>
                             Actualizar
                         </button>

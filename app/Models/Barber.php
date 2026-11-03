@@ -12,6 +12,7 @@ class Barber extends Model
 
     protected $fillable = [
         'barbershop_id',
+        'user_id', // <-- Agregamos esto para que el sistema permita guardar el ID del usuario
         'nombre',
         'telefono',
         'foto',
@@ -21,4 +22,12 @@ class Barber extends Model
     protected $casts = [
         'activo' => 'boolean',
     ];
+
+    /**
+     * Relación con el usuario (para el login y credenciales).
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

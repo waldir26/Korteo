@@ -23,12 +23,14 @@
     deleteCatAction: ''
 }">
 
+    <!-- Header Responsivo -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
             <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Inventario de Productos</h2>
             <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Gestiona los productos que vendes en tu barbería.</p>
         </div>
-        <div class="flex gap-2 w-full sm:w-auto">
+        <!-- Botones solo visibles en PC -->
+        <div class="hidden md:flex gap-2 w-full sm:w-auto">
             <button x-on:click="catModal = true" class="w-full sm:w-auto bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-medium py-2 px-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm shrink-0 hover:bg-slate-50 dark:hover:bg-slate-700">
                 <i data-lucide="tag" class="w-5 h-5"></i>
                 Categorías
@@ -42,7 +44,9 @@
 
     <!-- FILTROS -->
     <div class="bg-white dark:bg-barber-card-dark rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/50 p-4 mb-6">
-        <form action="{{ route('app.productos.index') }}" method="GET" class="flex flex-col md:flex-row gap-4 items-end">
+        <!-- Usamos x-data local para el dropdown de categorías -->
+        <form action="{{ route('app.productos.index') }}" method="GET" class="flex flex-col md:flex-row gap-4 items-end" x-data="{ openCat: false, selectedCat: '{{ request('categoria') }}' }">
+
             <div class="flex-1 w-full">
                 <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Buscar por nombre, código o marca</label>
                 <div class="relative">
@@ -50,25 +54,46 @@
                     <input type="text" name="search" value="{{ request('search') }}" placeholder="Ej. Cera, 001, Suavecito..." class="w-full pl-10 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent">
                 </div>
             </div>
-            <div class="w-full md:w-auto">
+
+            <!-- DROPDOWN PERSONALIZADO -->
+            <div class="w-full md:w-auto relative">
                 <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Categoría</label>
-                <select name="categoria" class="w-full md:w-auto rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent">
-                    <option value="">Todas las categorías</option>
+
+                <!-- Input oculto para que el formulario envíe el valor -->
+                <input type="hidden" name="categoria" :value="selectedCat">
+
+                <button type="button" @click="openCat = !openCat" @click.away="openCat = false" class="w-full md:w-56 flex justify-between items-center rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent transition-colors">
+                    <span x-text="selectedCat === '' ? 'Todas las categorías' : document.getElementById('cat-name-' + selectedCat)?.innerText || 'Todas las categorías'"></span>
+                    <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 transition-transform" :class="openCat ? 'rotate-180' : ''"></i>
+                </button>
+
+                <!-- Lista flotante -->
+                <div x-show="openCat" x-transition.opacity x-cloak class="absolute z-50 w-full md:w-56 mt-1 bg-white dark:bg-barber-card-dark rounded-xl shadow-lg border border-slate-200 dark:border-slate-700/50 py-1 max-h-60 overflow-y-auto">
+                    <button type="button" @click="selectedCat = ''; openCat = false" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                        Todas las categorías
+                    </button>
                     @foreach($categories as $cat)
-                    <option value="{{ $cat->id }}" {{ request('categoria') == $cat->id ? 'selected' : '' }}>{{ $cat->nombre }}</option>
+                    <button type="button" @click="selectedCat = '{{ $cat->id }}'; openCat = false" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                        <span id="cat-name-{{ $cat->id }}">{{ $cat->nombre }}</span>
+                    </button>
                     @endforeach
-                </select>
+                </div>
             </div>
-            <button type="submit" class="w-full md:w-auto bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-medium py-2 px-6 rounded-lg transition-all flex items-center justify-center gap-2">
-                <i data-lucide="filter" class="w-4 h-4"></i> Filtrar
-            </button>
-            @if(request('search') || request('categoria'))
-            <a href="{{ route('app.productos.index') }}" class="w-full md:w-auto text-sm font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white py-2 px-4 text-center">Limpiar</a>
-            @endif
+
+            <div class="flex gap-2 w-full md:w-auto">
+                <button type="submit" class="flex-1 md:flex-none bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-medium py-2 px-6 rounded-lg transition-all flex items-center justify-center gap-2">
+                    <i data-lucide="filter" class="w-4 h-4"></i> Filtrar
+                </button>
+                @if(request('search') || request('categoria'))
+                <a href="{{ route('app.productos.index') }}" class="flex-1 md:flex-none text-sm font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white py-2 px-4 text-center bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center">Limpiar</a>
+                @endif
+            </div>
         </form>
     </div>
-
-    <div class="bg-white dark:bg-barber-card-dark rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/50 overflow-hidden">
+    <!-- ========================================== -->
+    <!-- VISTA ESCRITORIO (Tabla) -->
+    <!-- ========================================== -->
+    <div class="hidden md:block bg-white dark:bg-barber-card-dark rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/50 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
@@ -138,8 +163,6 @@
                                 " class="p-2 text-slate-400 hover:text-barber-accent transition-colors" title="Editar">
                                     <i data-lucide="edit" class="w-4 h-4"></i>
                                 </button>
-
-                                <!-- Botón Eliminar -->
                                 <button type="button" x-on:click="
                                     deleteModal = true;
                                     deleteAction = '{{ route('app.productos.delete', $product->id) }}';
@@ -167,6 +190,109 @@
         </div>
         @endif
     </div>
+
+    <!-- ========================================== -->
+    <!-- VISTA MÓVIL (Tarjetas estilo App) -->
+    <!-- ========================================== -->
+    <div class="md:hidden space-y-3 pb-24">
+        <!-- Botón de Categorías para móvil -->
+        <button x-on:click="catModal = true" class="w-full bg-white dark:bg-barber-card-dark border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-medium py-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm mb-4 hover:bg-slate-50 dark:hover:bg-slate-700">
+            <i data-lucide="tag" class="w-5 h-5"></i>
+            Gestionar Categorías
+        </button>
+
+        @forelse ($products as $product)
+        <div class="bg-white dark:bg-barber-card-dark rounded-2xl p-4 shadow-sm border border-slate-200 dark:border-slate-700/50 flex flex-col gap-3 relative overflow-hidden">
+
+            <!-- Info Principal -->
+            <div class="flex items-start gap-4">
+                @if($product->foto)
+                <img src="{{ asset('storage/' . $product->foto) }}" alt="{{ $product->nombre }}" class="w-14 h-14 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0">
+                @else
+                <div class="w-14 h-14 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 shrink-0 border border-slate-200 dark:border-slate-700">
+                    <i data-lucide="package" class="w-6 h-6"></i>
+                </div>
+                @endif
+
+                <div class="flex-1 min-w-0">
+                    <h3 class="font-bold text-slate-900 dark:text-white text-lg truncate">{{ $product->nombre }}</h3>
+                    <div class="flex flex-wrap gap-2 mt-1">
+                        <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                            {{ $product->category->nombre ?? 'Sin categoría' }}
+                        </span>
+                        <span class="text-xs text-slate-500 font-mono mt-0.5">{{ $product->codigo }}</span>
+                    </div>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 truncate">
+                        {{ $product->marca ?? 'Sin marca' }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Info Financiera y Stock -->
+            <div class="flex items-center justify-between mt-1 pt-3 border-t border-slate-100 dark:border-slate-700/50">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Precio</p>
+                    <p class="text-lg font-extrabold text-barber-accent">${{ number_format($product->precio, 2) }}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Stock</p>
+                    @if($product->stock <= $product->stock_minimo)
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400 mt-1">
+                            <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+                            {{ $product->stock }} (Bajo)
+                        </span>
+                        @else
+                        <span class="inline-block px-2.5 py-1 rounded-md text-xs font-bold bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400 mt-1">
+                            {{ $product->stock }} disp.
+                        </span>
+                        @endif
+                </div>
+            </div>
+
+            <!-- Acciones -->
+            <div class="flex items-center gap-2 mt-2">
+                <button x-on:click="
+                        editModal = true; 
+                        editAction = '{{ route('app.productos.update', $product->id) }}';
+                        editCodigo = '{{ addslashes($product->codigo) }}';
+                        editNombre = '{{ addslashes($product->nombre) }}';
+                        editCategoriaId = '{{ $product->categoria_id }}';
+                        editMarca = '{{ addslashes($product->marca) }}';
+                        editPrecio = '{{ $product->precio }}';
+                        editStock = '{{ $product->stock }}';
+                        editStockMinimo = '{{ $product->stock_minimo }}';
+                    " class="flex-1 flex justify-center items-center gap-2 py-2 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                    <i data-lucide="edit" class="w-4 h-4"></i> Editar
+                </button>
+                <button type="button" x-on:click="
+                        deleteModal = true;
+                        deleteAction = '{{ route('app.productos.delete', $product->id) }}';
+                    " class="flex-1 flex justify-center items-center gap-2 py-2 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-xl text-sm font-medium hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i> Eliminar
+                </button>
+            </div>
+        </div>
+        @empty
+        <div class="bg-white dark:bg-barber-card-dark rounded-2xl p-10 text-center border border-slate-200 dark:border-slate-700/50 flex flex-col items-center justify-center">
+            <div class="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+                <i data-lucide="package" class="w-8 h-8 text-slate-300 dark:text-slate-600"></i>
+            </div>
+            <h4 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Sin productos</h4>
+            <p class="text-slate-500 dark:text-slate-400 text-sm">No se encontraron productos en el inventario.</p>
+        </div>
+        @endforelse
+
+        @if($products->hasPages())
+        <div class="mt-4">
+            {{ $products->links() }}
+        </div>
+        @endif
+    </div>
+
+    <!-- BOTÓN FLOTANTE (FAB) SOLO PARA MÓVIL -->
+    <button x-on:click="openModal = true" class="md:hidden fixed bottom-6 right-6 w-14 h-14 bg-barber-accent hover:bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center z-40 transition-transform active:scale-95">
+        <i data-lucide="plus" class="w-6 h-6"></i>
+    </button>
 
     <!-- MODAL DE CREACIÓN DE PRODUCTO -->
     <div x-show="openModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
@@ -329,8 +455,9 @@
                             </div>
                             <div class="grid grid-cols-2 gap-2">
                                 <div>
-                                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Stock *</label>
-                                    <input type="number" name="stock" x-model="editStock" required min="0" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent">
+                                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Stock Actual</label>
+                                    <input type="text" :value="editStock" disabled class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-3 py-2 cursor-not-allowed font-bold" title="El stock no se puede editar aquí. Se actualiza al registrar compras en Gastos.">
+                                    <p class="text-[10px] text-slate-500 mt-1">El stock solo se modifica registrando compras en Gastos.</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Stock Mín. *</label>

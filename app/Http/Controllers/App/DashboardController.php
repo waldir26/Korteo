@@ -46,13 +46,23 @@ class DashboardController extends Controller
             ->take(3)
             ->get();
 
+        // 4. Próximas Citas de Hoy (Para el nuevo widget del Dashboard)
+        $proximasCitas = Appointment::whereDate('fecha_hora', $hoy)
+            ->where('fecha_hora', '>=', now())
+            ->where('estado', 'pendiente')
+            ->orderBy('fecha_hora')
+            ->with(['client', 'service', 'barber'])
+            ->take(3)
+            ->get();
+
         return view('app.dashboard', compact(
             'citasHoy',
             'ingresosHoy',
             'barberosActivos',
             'fechasSemana',
             'ingresosSemana',
-            'topBarberos'
+            'topBarberos',
+            'proximasCitas' // <-- Agregado aquí
         ));
     }
 }

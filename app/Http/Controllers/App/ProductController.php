@@ -49,14 +49,13 @@ class ProductController extends Controller
             'foto' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:10240'],
         ]);
 
-        // Obtener el nombre de la categoría para la columna de texto vieja
         $categoriaNombre = Category::find($validated['categoria_id'])->nombre ?? 'General';
 
         $data = [
             'codigo' => $validated['codigo'],
             'nombre' => $validated['nombre'],
-            'categoria' => $categoriaNombre, // Guardamos el texto
-            'categoria_id' => $validated['categoria_id'], // Guardamos el ID
+            'categoria' => $categoriaNombre,
+            'categoria_id' => $validated['categoria_id'],
             'marca' => $validated['marca'],
             'precio' => $validated['precio'],
             'stock' => $validated['stock'],
@@ -82,7 +81,6 @@ class ProductController extends Controller
             'categoria_id' => ['required', 'exists:categories,id'],
             'marca' => ['nullable', 'string', 'max:255'],
             'precio' => ['required', 'numeric', 'min:0'],
-            'stock' => ['required', 'integer', 'min:0'],
             'stock_minimo' => ['required', 'integer', 'min:0'],
             'foto' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:10240'],
         ]);
@@ -95,7 +93,9 @@ class ProductController extends Controller
         $product->categoria_id = $validated['categoria_id'];
         $product->marca = $validated['marca'];
         $product->precio = $validated['precio'];
-        $product->stock = $validated['stock'];
+
+        // El stock no se actualiza aquí por seguridad.
+
         $product->stock_minimo = $validated['stock_minimo'];
 
         if ($request->hasFile('foto')) {
@@ -108,17 +108,37 @@ class ProductController extends Controller
 
         $product->save();
 
-        return redirect()->back()->with('success', 'Producto actualizado correctamente.');
+        return redirect()->back()->with('success', 'Producto actualizado correctamente. (El stock no se modificó por seguridad).');
+    }
+
+    // NUEVO MÉTODO: Ajustar Stock (Corrección manual con razón)
+    public function ajustarStock(Request $request, Product $product)
+    {
+        $validated = $request->validate([
+            'nuevo_stock' => ['required', 'integer', 'min:0'],
+            'razon' => ['required', 'string', 'max:255'],
+        ]);
+
+        // (Opcional) Si tuvieras una tabla de auditoría, aquí podrías guardar el registro:
+        // Audit::create([
+        //     'user_id' => auth()->id(),
+        //     'accion' => 'Ajuste de stock',
+        //     'detalles' => 'Producto: ' . $product->nombre . ' | Stock anterior: ' . $product->stock . ' | Nuevo stock: ' . $validated['nuevo_stock'] . ' | Razón: ' . $validated['razon']
+        // ]);
+
+        // Actualizamos el stock al nuevo valor
+        $product->stock = $validated['nuevo_stock'];
+        $product->save();
+
+        return redirect()->back()->with('success', 'Stock ajustado exitosamente a ' . $validated['nuevo_stock'] . ' unidades. Razón: ' . $validated['razon']);
     }
 
     public function destroy(Product $product)
     {
-        // Eliminamos la foto del almacenamiento si existe
         if ($product->foto && Storage::disk('public')->exists($product->foto)) {
             Storage::disk('public')->delete($product->foto);
         }
 
-        // Borrado definitivo de la base de datos
         $product->forceDelete();
 
         return redirect()->back()->with('success', 'Producto eliminado correctamente.');

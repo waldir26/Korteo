@@ -4,7 +4,9 @@ namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
 use App\Models\Client;
+use App\Models\Appointment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ClientController extends Controller
 {
@@ -56,8 +58,20 @@ class ClientController extends Controller
 
     public function destroy(Client $client)
     {
-        $client->delete();
+        try {
+            DB::beginTransaction();
 
-        return redirect()->back()->with('success', 'Cliente eliminado.');
+            // 1. Desvinculamos las citas (para que no haya errores de historial)
+            Appointment::where('client_id', $client->id)->update(['client_id' => null]);
+
+            // 2. Eliminamos el cliente de la base de datos de verdad
+            $client->forceDelete();
+
+            DB::commit();
+            return redirect()->back()->with('success', 'Cliente eliminado permanentemente.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Error al eliminar el cliente: ' . $e->getMessage());
+        }
     }
 }

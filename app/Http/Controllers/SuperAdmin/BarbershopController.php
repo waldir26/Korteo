@@ -56,7 +56,7 @@ class BarbershopController extends Controller
 
             $admin = User::create([
                 'barbershop_id' => $barbershop->id,
-                'name' => $validated['admin_name'], // <-- Ahora usa el nombre real ingresado
+                'name' => $validated['admin_name'],
                 'username' => $validated['admin_username'],
                 'password' => Hash::make($validated['admin_password']),
                 'activo' => true,
@@ -91,9 +91,16 @@ class BarbershopController extends Controller
             }],
             'estado' => ['required', 'in:activa,suspendida,en_prueba,cancelada'],
             'motivo_estado' => ['nullable', 'string', 'max:255'],
+            'new_password' => ['nullable', 'string', 'min:8'], // Validación para la nueva clave
         ]);
 
-        $barbershop->update($validated);
+        $barbershop->update([
+            'nombre' => $validated['nombre'],
+            'telefono' => '+503 ' . $validated['telefono'],
+            'direccion' => $validated['direccion'],
+            'estado' => $validated['estado'],
+            'motivo_estado' => $validated['motivo_estado'] ?? $barbershop->motivo_estado,
+        ]);
 
         if ($request->estado === 'suspendida' && !$barbershop->suspendida_en) {
             $barbershop->update(['suspendida_en' => now()]);
@@ -101,8 +108,21 @@ class BarbershopController extends Controller
             $barbershop->update(['cancelada_en' => now()]);
         }
 
+        // LÓGICA PARA RESTABLECER LA CONTRASEÑA
+        if ($request->filled('new_password')) {
+            // Buscamos al administrador de esta barbería específica
+            $admin = $barbershop->users()->role('admin')->first();
+
+            if ($admin) {
+                $admin->update([
+                    'password' => Hash::make($request->new_password),
+                    'debe_cambiar_password' => true, // Obligamos a que la cambie al entrar
+                ]);
+            }
+        }
+
         return redirect()->route('superadmin.barbershops.index')
-            ->with('success', 'Barbería actualizada correctamente.');
+            ->with('success', 'Barbería actualizada correctamente. ' . ($request->filled('new_password') ? 'Se restableció la contraseña del administrador.' : ''));
     }
 
     public function destroy(Barbershop $barbershop)

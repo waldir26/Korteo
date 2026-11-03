@@ -17,7 +17,13 @@
     payAction: '',
     payClient: '',
     payService: '',
-    payAmount: 0
+    payAmount: 0,
+
+    // Variables para los Dropdowns del modal de edición
+    openBarberEdit: false,
+    openServiceEdit: false,
+    editBarberName: '',
+    editServiceName: ''
 }" id="appointments-page">
 
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
@@ -27,7 +33,7 @@
         </div>
 
         <div class="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-            <a href="{{ route('app.appointments.create') }}" class="w-full sm:w-auto bg-barber-accent hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm shrink-0">
+            <a href="{{ route('app.appointments.create') }}" class="w-full sm:w-auto bg-barber-accent hover:bg-blue-600 text-white font-medium py-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm shrink-0">
                 <i data-lucide="plus" class="w-5 h-5"></i>
                 Agendar Cita
             </a>
@@ -40,25 +46,29 @@
             <div class="flex-1 w-full">
                 <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Buscar por cliente o barbero</label>
                 <div class="relative">
-                    <i data-lucide="search" class="w-5 h-5 absolute left-3 top-2.5 text-slate-400"></i>
-                    <input type="text" name="search" value="{{ $search }}" placeholder="Ej. Juan Pérez o Carlos..." class="w-full pl-10 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent">
+                    <i data-lucide="search" class="w-5 h-5 absolute left-3 top-3 text-slate-400"></i>
+                    <input type="text" name="search" value="{{ $search }}" placeholder="Ej. Juan Pérez o Carlos..." class="w-full pl-10 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2.5 focus:ring-2 focus:ring-barber-accent text-base">
                 </div>
             </div>
             <div class="w-full md:w-auto">
                 <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Fecha</label>
-                <!-- ID PARA FLATPICKR -->
-                <input type="text" name="fecha" id="fecha-filtro" value="{{ $fecha }}" placeholder="Seleccione fecha" class="w-full md:w-auto rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent">
+                <input type="text" name="fecha" id="fecha-filtro" value="{{ $fecha }}" placeholder="Seleccione fecha" class="w-full md:w-auto rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2.5 focus:ring-2 focus:ring-barber-accent text-base">
             </div>
-            <button type="submit" class="w-full md:w-auto bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-medium py-2 px-6 rounded-lg transition-all flex items-center justify-center gap-2">
-                <i data-lucide="filter" class="w-4 h-4"></i> Filtrar
-            </button>
-            @if($search || $fecha != date('Y-m-d'))
-            <a href="{{ route('app.appointments.index') }}" class="w-full md:w-auto text-sm font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white py-2 px-4 text-center">Limpiar</a>
-            @endif
+            <div class="flex gap-2 w-full md:w-auto">
+                <button type="submit" class="flex-1 md:flex-none bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-medium py-2.5 px-6 rounded-xl transition-all flex items-center justify-center gap-2">
+                    <i data-lucide="filter" class="w-4 h-4"></i> Filtrar
+                </button>
+                @if($search || $fecha != date('Y-m-d'))
+                <a href="{{ route('app.appointments.index') }}" class="flex-1 md:flex-none text-sm font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white py-2.5 px-4 text-center bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center">Limpiar</a>
+                @endif
+            </div>
         </form>
     </div>
 
-    <div class="bg-white dark:bg-barber-card-dark rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/50 overflow-hidden">
+    <!-- ========================================== -->
+    <!-- VISTA ESCRITORIO (Tabla) -->
+    <!-- ========================================== -->
+    <div class="hidden md:block bg-white dark:bg-barber-card-dark rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/50 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
@@ -80,7 +90,6 @@
                             </div>
                         </td>
                         <td class="px-6 py-4">
-                            <!-- OPERADOR ?-> POR SI EL CLIENTE FUE ELIMINADO -->
                             <div class="font-medium text-slate-900 dark:text-white">{{ $appointment->client?->nombre ?? 'Cliente eliminado' }}</div>
                             <div class="text-xs text-slate-500 dark:text-slate-400">{{ $appointment->client?->telefono ?? '—' }}</div>
                         </td>
@@ -105,7 +114,6 @@
                         </td>
                         <td class="px-6 py-4 text-right">
                             <div class="flex justify-end gap-2 items-center">
-                                <!-- Botón Cobrar -->
                                 @if($appointment->estado === 'pendiente')
                                 <button type="button" x-on:click="
                                     payModal = true;
@@ -118,7 +126,6 @@
                                 </button>
                                 @endif
 
-                                <!-- Botón Cancelar -->
                                 @if($appointment->estado === 'pendiente')
                                 <form action="{{ route('app.appointments.update-status', $appointment) }}" method="POST" onsubmit="return confirm('¿Estás seguro de cancelar esta cita?');">
                                     @csrf
@@ -129,17 +136,17 @@
                                 </form>
                                 @endif
 
-                                <!-- Botón Editar -->
                                 <button x-on:click="
                                     editModal = true; 
                                     editAction = '{{ route('app.appointments.update', $appointment) }}';
                                     editBarber = '{{ $appointment->barber_id }}';
+                                    editBarberName = '{{ addslashes($appointment->barber?->nombre) }}';
                                     editService = '{{ $appointment->service_id }}';
+                                    editServiceName = '{{ addslashes($appointment->service?->nombre) }}';
                                     editFecha = '{{ \Carbon\Carbon::parse($appointment->fecha_hora)->format('Y-m-d') }}';
                                     editHora = '{{ \Carbon\Carbon::parse($appointment->fecha_hora)->format('H:i') }}';
                                     editNotas = '{{ addslashes($appointment->notas) }}';
                                     
-                                    // Actualizamos Flatpickr visualmente al abrir el modal
                                     setTimeout(() => {
                                         if(document.getElementById('fecha-editar')._flatpickr) {
                                             document.getElementById('fecha-editar')._flatpickr.setDate(editFecha);
@@ -152,7 +159,6 @@
                                     <i data-lucide="edit" class="w-4 h-4"></i>
                                 </button>
 
-                                <!-- Botón Eliminar -->
                                 <form id="delete-form-{{ $appointment->id }}" action="{{ route('app.appointments.delete', $appointment->id) }}" method="POST" class="hidden">
                                     @csrf
                                 </form>
@@ -173,6 +179,109 @@
                 </tbody>
             </table>
         </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VISTA MÓVIL (Tarjetas) -->
+    <!-- ========================================== -->
+    <div class="md:hidden space-y-3 pb-24">
+        @forelse ($appointments as $appointment)
+        <div class="bg-white dark:bg-barber-card-dark rounded-2xl p-4 shadow-sm border border-slate-200 dark:border-slate-700/50 flex flex-col gap-3 relative overflow-hidden">
+
+            <!-- Header: Hora y Estado -->
+            <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-700/50 pb-3">
+                <div class="flex items-center gap-2 text-barber-accent font-bold text-lg">
+                    <i data-lucide="clock" class="w-5 h-5"></i>
+                    {{ \Carbon\Carbon::parse($appointment->fecha_hora)->format('h:i A') }}
+                </div>
+                @php
+                $color = match($appointment->estado) {
+                'pendiente' => 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400',
+                'completada' => 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400',
+                'cancelada' => 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400',
+                };
+                @endphp
+                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider {{ $color }}">
+                    {{ $appointment->estado }}
+                </span>
+            </div>
+
+            <!-- Info: Cliente y Servicio -->
+            <div>
+                <h3 class="font-bold text-slate-900 dark:text-white text-lg">{{ $appointment->client?->nombre ?? 'Cliente eliminado' }}</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1.5">
+                    <i data-lucide="scissors" class="w-4 h-4"></i>
+                    {{ $appointment->service?->nombre ?? 'Servicio eliminado' }}
+                    <span class="font-bold text-green-600 dark:text-green-400">(${{ number_format($appointment->service?->precio ?? 0, 2) }})</span>
+                </p>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1.5">
+                    <i data-lucide="user" class="w-4 h-4"></i>
+                    Barbero: {{ $appointment->barber?->nombre ?? 'Barbero eliminado' }}
+                </p>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="flex items-center gap-2 mt-2 pt-3 border-t border-slate-100 dark:border-slate-700/50">
+                @if($appointment->estado === 'pendiente')
+                <button type="button" x-on:click="
+                            payModal = true;
+                            payAction = '{{ route('app.appointments.pay', $appointment) }}';
+                            payClient = '{{ addslashes($appointment->client?->nombre ?? 'Cliente eliminado') }}';
+                            payService = '{{ addslashes($appointment->service?->nombre ?? 'Servicio eliminado') }}';
+                            payAmount = '{{ $appointment->service?->precio ?? 0 }}';
+                        " class="flex-1 flex justify-center items-center gap-2 py-2.5 bg-green-50 text-green-700 rounded-xl text-sm font-bold border border-green-200 hover:bg-green-100 transition-colors">
+                    <i data-lucide="dollar-sign" class="w-4 h-4"></i> Cobrar
+                </button>
+
+                <form action="{{ route('app.appointments.update-status', $appointment) }}" method="POST" onsubmit="return confirm('¿Estás seguro de cancelar esta cita?');" class="flex-1">
+                    @csrf
+                    <input type="hidden" name="estado" value="cancelada">
+                    <button type="submit" class="w-full flex justify-center items-center gap-2 py-2.5 bg-amber-50 text-amber-700 rounded-xl text-sm font-bold border border-amber-200 hover:bg-amber-100 transition-colors">
+                        <i data-lucide="x-circle" class="w-4 h-4"></i> Cancelar
+                    </button>
+                </form>
+                @endif
+
+                <button x-on:click="
+                        editModal = true; 
+                        editAction = '{{ route('app.appointments.update', $appointment) }}';
+                        editBarber = '{{ $appointment->barber_id }}';
+                        editBarberName = '{{ addslashes($appointment->barber?->nombre) }}';
+                        editService = '{{ $appointment->service_id }}';
+                        editServiceName = '{{ addslashes($appointment->service?->nombre) }}';
+                        editFecha = '{{ \Carbon\Carbon::parse($appointment->fecha_hora)->format('Y-m-d') }}';
+                        editHora = '{{ \Carbon\Carbon::parse($appointment->fecha_hora)->format('H:i') }}';
+                        editNotas = '{{ addslashes($appointment->notas) }}';
+                        
+                        setTimeout(() => {
+                            if(document.getElementById('fecha-editar')._flatpickr) {
+                                document.getElementById('fecha-editar')._flatpickr.setDate(editFecha);
+                            }
+                            if(document.getElementById('hora-editar')._flatpickr) {
+                                document.getElementById('hora-editar')._flatpickr.setDate(editHora);
+                            }
+                        }, 100);
+                    " class="p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 transition-colors">
+                    <i data-lucide="edit" class="w-5 h-5"></i>
+                </button>
+
+                <form id="delete-form-mob-{{ $appointment->id }}" action="{{ route('app.appointments.delete', $appointment->id) }}" method="POST" class="hidden">
+                    @csrf
+                </form>
+                <button type="button" onclick="if(confirm('¿Eliminar cita?')) document.getElementById('delete-form-mob-{{ $appointment->id }}').submit();" class="p-2.5 bg-red-50 dark:bg-red-500/10 text-red-600 rounded-xl border border-red-100 dark:border-red-500/20 hover:bg-red-100 transition-colors">
+                    <i data-lucide="trash-2" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+        @empty
+        <div class="bg-white dark:bg-barber-card-dark rounded-2xl p-10 text-center border border-slate-200 dark:border-slate-700/50 flex flex-col items-center justify-center">
+            <div class="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+                <i data-lucide="calendar" class="w-8 h-8 text-slate-300 dark:text-slate-600"></i>
+            </div>
+            <h4 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Sin citas</h4>
+            <p class="text-slate-500 dark:text-slate-400 text-sm">No hay citas para mostrar con estos filtros.</p>
+        </div>
+        @endforelse
     </div>
 
     <!-- MODAL DE COBRO -->
@@ -256,46 +365,66 @@
 
                     <div class="px-6 py-4 space-y-4">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Barbero *</label>
-                                <select name="barber_id" x-model="editBarber" required class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent">
+
+                            <!-- Dropdown Barbero -->
+                            <div class="relative" @click.away="openBarberEdit = false">
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Barbero *</label>
+                                <input type="hidden" name="barber_id" :value="editBarber" required>
+
+                                <button type="button" @click="openBarberEdit = !openBarberEdit" class="w-full flex justify-between items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-4 py-3 focus:ring-2 focus:ring-barber-accent text-base transition-colors">
+                                    <span x-text="editBarberName || 'Seleccione barbero'" :class="!editBarberName ? 'text-slate-500' : ''"></span>
+                                    <i data-lucide="chevron-down" class="w-5 h-5 text-slate-400 transition-transform" :class="openBarberEdit ? 'rotate-180' : ''"></i>
+                                </button>
+
+                                <div x-show="openBarberEdit" x-transition.opacity x-cloak class="absolute z-30 w-full mt-2 bg-white dark:bg-barber-card-dark border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl max-h-60 overflow-y-auto">
                                     @foreach($barbers as $barber)
-                                    <option value="{{ $barber->id }}">{{ $barber->nombre }}</option>
+                                    <button type="button" @click="editBarber = '{{ $barber->id }}'; editBarberName = '{{ addslashes($barber->nombre) }}'; openBarberEdit = false" class="w-full text-left px-4 py-3 text-base text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-b border-slate-100 dark:border-slate-700/50 last:border-0">
+                                        {{ $barber->nombre }}
+                                    </button>
                                     @endforeach
-                                </select>
+                                </div>
                             </div>
 
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Servicio *</label>
-                                <select name="service_id" x-model="editService" required class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent">
+                            <!-- Dropdown Servicio -->
+                            <div class="relative" @click.away="openServiceEdit = false">
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Servicio *</label>
+                                <input type="hidden" name="service_id" :value="editService" required>
+
+                                <button type="button" @click="openServiceEdit = !openServiceEdit" class="w-full flex justify-between items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-4 py-3 focus:ring-2 focus:ring-barber-accent text-base transition-colors">
+                                    <span x-text="editServiceName || 'Seleccione servicio'" :class="!editServiceName ? 'text-slate-500' : ''"></span>
+                                    <i data-lucide="chevron-down" class="w-5 h-5 text-slate-400 transition-transform" :class="openServiceEdit ? 'rotate-180' : ''"></i>
+                                </button>
+
+                                <div x-show="openServiceEdit" x-transition.opacity x-cloak class="absolute z-30 w-full mt-2 bg-white dark:bg-barber-card-dark border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl max-h-60 overflow-y-auto">
                                     @foreach($services as $service)
-                                    <option value="{{ $service->id }}">{{ $service->nombre }} (${{ $service->precio }})</option>
+                                    <button type="button" @click="editService = '{{ $service->id }}'; editServiceName = '{{ addslashes($service->nombre) }}'; openServiceEdit = false" class="w-full text-left px-4 py-3 text-base text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-b border-slate-100 dark:border-slate-700/50 last:border-0 flex justify-between items-center">
+                                        <span>{{ $service->nombre }}</span>
+                                        <span class="text-sm font-bold text-green-600 dark:text-green-400">${{ $service->precio }}</span>
+                                    </button>
                                     @endforeach
-                                </select>
+                                </div>
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Fecha *</label>
-                                <!-- ID PARA FLATPICKR -->
-                                <input type="text" name="fecha" id="fecha-editar" x-model="editFecha" required placeholder="Seleccione fecha" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent">
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Fecha *</label>
+                                <input type="text" name="fecha" id="fecha-editar" x-model="editFecha" required placeholder="Seleccione fecha" class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-4 py-3 focus:ring-2 focus:ring-barber-accent text-base">
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Hora *</label>
-                                <!-- ID PARA FLATPICKR -->
-                                <input type="text" name="hora" id="hora-editar" x-model="editHora" required placeholder="--:--" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent">
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Hora *</label>
+                                <input type="text" name="hora" id="hora-editar" x-model="editHora" required placeholder="--:--" class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-4 py-3 focus:ring-2 focus:ring-barber-accent text-base">
                             </div>
 
                             <div class="md:col-span-2">
-                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Notas</label>
-                                <input type="text" name="notas" x-model="editNotas" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent">
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Notas</label>
+                                <input type="text" name="notas" x-model="editNotas" class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-4 py-3 focus:ring-2 focus:ring-barber-accent text-base">
                             </div>
                         </div>
                     </div>
 
-                    <div class="bg-slate-50 dark:bg-slate-800/50 px-6 py-4 flex justify-end gap-3 rounded-b-2xl">
-                        <button type="button" x-on:click="editModal = false" class="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Cancelar</button>
-                        <button type="submit" class="bg-barber-accent hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-xl transition-all shadow-sm flex items-center gap-2">
+                    <div class="bg-slate-50 dark:bg-slate-800/50 px-6 py-4 flex flex-col-reverse sm:flex-row justify-end gap-3 rounded-b-2xl">
+                        <button type="button" x-on:click="editModal = false" class="w-full sm:w-auto px-4 py-3 sm:py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-200 sm:bg-transparent dark:bg-slate-700 sm:dark:bg-transparent rounded-xl sm:rounded-none transition-colors">Cancelar</button>
+                        <button type="submit" class="w-full sm:w-auto bg-barber-accent hover:bg-blue-600 text-white font-medium py-3 sm:py-2 px-4 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2">
                             <i data-lucide="save" class="w-4 h-4"></i>
                             Guardar Cambios
                         </button>

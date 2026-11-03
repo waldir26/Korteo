@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Cambiar contraseña — BarberOS</title>
+    <title>Cambiar contraseña — Korteo</title>
     <link rel="icon" type="image/png" href="{{ asset('logos/favicon.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
@@ -15,9 +15,9 @@
     <div class="w-full max-w-md">
         <div class="text-center mb-8">
             <!-- Logo Modo Claro -->
-            <img src="{{ asset('logos/logo-claro.png') }}" alt="BarberOS" class="h-16 w-auto block dark:hidden mx-auto">
+            <img src="{{ asset('logos/logo-claro.png') }}" alt="Korteo" class="h-16 w-auto block dark:hidden mx-auto">
             <!-- Logo Modo Oscuro -->
-            <img src="{{ asset('logos/logo-oscuro.png') }}" alt="BarberOS" class="h-16 w-auto hidden dark:block mx-auto">
+            <img src="{{ asset('logos/logo-oscuro.png') }}" alt="Korteo" class="h-16 w-auto hidden dark:block mx-auto">
             <p class="text-slate-500 dark:text-slate-400 mt-4">Debes cambiar tu contraseña para continuar</p>
         </div>
 

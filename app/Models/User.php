@@ -41,6 +41,12 @@ class User extends Authenticatable
         return $this->belongsTo(Barbershop::class);
     }
 
+    // NUEVA RELACIÓN: Un usuario puede tener un perfil de barbero
+    public function barber()
+    {
+        return $this->hasOne(Barber::class, 'user_id');
+    }
+
     public function isSuperAdmin(): bool
     {
         return $this->barbershop_id === null && $this->hasRole('superadmin');

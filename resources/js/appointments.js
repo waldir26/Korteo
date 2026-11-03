@@ -1,4 +1,7 @@
 document.addEventListener('DOMContentLoaded', function () {
+    // ==========================================
+    // FLATPICKR PARA CREAR CITA
+    // ==========================================
     const fechaInput = document.getElementById('fecha-cita');
     const horaInput = document.getElementById('hora-cita');
 
@@ -139,27 +142,65 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ==========================================
-    // FLATPICKR PARA FILTRO DE PAGOS
+    // FLATPICKR PARA RANGO DE FECHAS EN GASTOS
     // ==========================================
-    const fechaInicio = document.getElementById('fecha_inicio');
-    if (fechaInicio) {
-        flatpickr(fechaInicio, {
+    const rangoFechas = document.getElementById('rango-fechas');
+    if (rangoFechas) {
+        flatpickr(rangoFechas, {
             locale: "es",
+            mode: "range",
             dateFormat: "Y-m-d",
             altInput: true,
-            altFormat: "j F, Y",
-            disableMobile: true
+            altFormat: "j M, Y",
+            onClose: function (selectedDates, dateStr, instance) {
+                if (selectedDates.length === 2) {
+                    const inicio = instance.formatDate(selectedDates[0], "Y-m-d");
+                    const fin = instance.formatDate(selectedDates[1], "Y-m-d");
+                    rangoFechas.value = inicio + ' a ' + fin;
+                }
+            }
         });
     }
 
-    const fechaFin = document.getElementById('fecha_fin');
-    if (fechaFin) {
-        flatpickr(fechaFin, {
+    // ==========================================
+    // FLATPICKR PARA RANGO DE FECHAS EN PAGOS
+    // ==========================================
+    const rangoFechasPagos = document.getElementById('rango-fechas-pagos');
+    if (rangoFechasPagos) {
+        flatpickr(rangoFechasPagos, {
             locale: "es",
+            mode: "range",
             dateFormat: "Y-m-d",
             altInput: true,
-            altFormat: "j F, Y",
-            disableMobile: true
+            altFormat: "j M, Y",
+            onClose: function (selectedDates, dateStr, instance) {
+                if (selectedDates.length === 2) {
+                    const inicio = instance.formatDate(selectedDates[0], "Y-m-d");
+                    const fin = instance.formatDate(selectedDates[1], "Y-m-d");
+                    rangoFechasPagos.value = inicio + ' a ' + fin;
+                }
+            }
+        });
+    }
+
+    // ==========================================
+    // FLATPICKR PARA RANGO DE FECHAS EN VENTAS
+    // ==========================================
+    const rangoFechasVentas = document.getElementById('rango-fechas-ventas');
+    if (rangoFechasVentas) {
+        flatpickr(rangoFechasVentas, {
+            locale: "es",
+            mode: "range",
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "j M, Y",
+            onClose: function (selectedDates, dateStr, instance) {
+                if (selectedDates.length === 2) {
+                    const inicio = instance.formatDate(selectedDates[0], "Y-m-d");
+                    const fin = instance.formatDate(selectedDates[1], "Y-m-d");
+                    rangoFechasVentas.value = inicio + ' a ' + fin;
+                }
+            }
         });
     }
 });

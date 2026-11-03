@@ -3,12 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Concerns\BelongsToBarbershop;
 
 class Appointment extends Model
 {
-    use SoftDeletes, BelongsToBarbershop;
+    // Quitamos SoftDeletes
+    use BelongsToBarbershop;
 
     protected $fillable = [
         'barbershop_id',

@@ -20,6 +20,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/cambiar-password', [PasswordChangeController::class, 'update'])->name('password.change.post');
 });
 
-// Archivos de rutas separados
+Route::view('/ayuda', 'app.ayuda')->name('app.ayuda');
+
+// AQUÍ ESTÁ LA MAGIA: Cargar los archivos separados
 require __DIR__ . '/superadmin.php';
 require __DIR__ . '/app.php';

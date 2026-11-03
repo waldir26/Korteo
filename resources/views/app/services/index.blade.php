@@ -10,92 +10,220 @@
     editNombre: '',
     editPrecio: '',
     editDuracion: '',
-    // Variables para el modal de eliminar
     deleteModal: false,
-    deleteAction: ''
+    deleteAction: '',
+    
+    // Variables para Buscador y Ordenamiento
+    search: '',
+    sortBy: 'nombre', // nombre, precio, duracion
+    sortAsc: true,
+
+    // Datos de los servicios pasados desde Laravel
+    services: {{ $services->items() ? json_encode($services->items()) : '[]' }},
+
+    get filteredServices() {
+        let filtered = this.services;
+        
+        // Filtrar por búsqueda
+        if (this.search !== '') {
+            let query = this.search.toLowerCase();
+            filtered = filtered.filter(s => s.nombre.toLowerCase().includes(query));
+        }
+
+        // Ordenar
+        filtered.sort((a, b) => {
+            let valA = a[this.sortBy];
+            let valB = b[this.sortBy];
+            
+            // Manejar nulos en duración
+            if (this.sortBy === 'duracion') {
+                valA = valA ? parseInt(valA) : 0;
+                valB = valB ? parseInt(valB) : 0;
+            }
+            if (this.sortBy === 'precio') {
+                valA = parseFloat(valA);
+                valB = parseFloat(valB);
+            }
+
+            if (valA < valB) return this.sortAsc ? -1 : 1;
+            if (valA > valB) return this.sortAsc ? 1 : -1;
+            return 0;
+        });
+
+        return filtered;
+    },
+
+    setSort(column) {
+        if (this.sortBy === column) {
+            this.sortAsc = !this.sortAsc;
+        } else {
+            this.sortBy = column;
+            this.sortAsc = true;
+        }
+    }
 }">
 
-    <div class="flex justify-between items-center mb-6">
+    <!-- Header Responsivo -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
             <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Servicios</h2>
             <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Gestiona el menú de servicios de tu barbería.</p>
         </div>
-        <button x-on:click="openModal = true" class="bg-barber-accent hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-xl transition-all flex items-center gap-2 shadow-sm">
-            <i data-lucide="plus" class="w-5 h-5"></i>
-            Nuevo Servicio
-        </button>
+
+        <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <!-- BUSCADOR -->
+            <div class="relative w-full sm:w-64">
+                <i data-lucide="search" class="w-5 h-5 absolute left-3 top-2.5 text-slate-400"></i>
+                <input type="text" x-model="search" placeholder="Buscar servicio..." class="w-full pl-10 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent text-sm">
+            </div>
+
+            <!-- Botón Nuevo (PC) -->
+            <button x-on:click="openModal = true" class="hidden md:flex bg-barber-accent hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-xl transition-all items-center gap-2 shadow-sm shrink-0">
+                <i data-lucide="plus" class="w-5 h-5"></i>
+                Nuevo Servicio
+            </button>
+        </div>
     </div>
 
-    <div class="bg-white dark:bg-barber-card-dark rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/50 overflow-hidden">
+    <!-- ========================================== -->
+    <!-- VISTA ESCRITORIO (Tabla) -->
+    <!-- ========================================== -->
+    <div class="hidden md:block bg-white dark:bg-barber-card-dark rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/50 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-sm border-b border-slate-200 dark:border-slate-700/50">
-                        <th class="px-6 py-4 font-medium">Servicio</th>
-                        <th class="px-6 py-4 font-medium">Duración</th>
-                        <th class="px-6 py-4 font-medium">Precio</th>
+                        <th class="px-6 py-4 font-medium cursor-pointer hover:text-barber-accent transition-colors" @click="setSort('nombre')">
+                            <div class="flex items-center gap-1">
+                                Servicio
+                                <i data-lucide="arrow-up-down" class="w-3 h-3" x-show="sortBy === 'nombre'"></i>
+                            </div>
+                        </th>
+                        <th class="px-6 py-4 font-medium cursor-pointer hover:text-barber-accent transition-colors" @click="setSort('duracion')">
+                            <div class="flex items-center gap-1">
+                                Duración
+                                <i data-lucide="arrow-up-down" class="w-3 h-3" x-show="sortBy === 'duracion'"></i>
+                            </div>
+                        </th>
+                        <th class="px-6 py-4 font-medium cursor-pointer hover:text-barber-accent transition-colors" @click="setSort('precio')">
+                            <div class="flex items-center gap-1">
+                                Precio
+                                <i data-lucide="arrow-up-down" class="w-3 h-3" x-show="sortBy === 'precio'"></i>
+                            </div>
+                        </th>
                         <th class="px-6 py-4 font-medium">Estado</th>
                         <th class="px-6 py-4 font-medium text-right">Acciones</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200 dark:divide-slate-700/50">
-                    @forelse ($services as $service)
-                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                        <td class="px-6 py-4">
-                            <div class="font-medium text-slate-900 dark:text-white">{{ $service->nombre }}</div>
-                        </td>
-                        <td class="px-6 py-4 text-slate-600 dark:text-slate-300">
-                            {{ $service->duracion ? $service->duracion . ' min' : '—' }}
-                        </td>
-                        <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">
-                            ${{ number_format($service->precio, 2) }}
-                        </td>
-                        <td class="px-6 py-4">
-                            <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400">
-                                Activo
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 text-right">
-                            <div class="flex justify-end gap-2 items-center">
-                                <!-- Botón Editar -->
-                                <button x-on:click="
-                                    editModal = true; 
-                                    editAction = '{{ route('app.servicios.update', $service) }}';
-                                    editNombre = '{{ addslashes($service->nombre) }}';
-                                    editPrecio = '{{ $service->precio }}';
-                                    editDuracion = '{{ $service->duracion }}';
-                                " class="p-2 text-slate-400 hover:text-barber-accent transition-colors" title="Editar">
-                                    <i data-lucide="edit" class="w-4 h-4"></i>
-                                </button>
+                    <template x-for="service in filteredServices" :key="service.id">
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                            <td class="px-6 py-4">
+                                <div class="font-medium text-slate-900 dark:text-white" x-text="service.nombre"></div>
+                            </td>
+                            <td class="px-6 py-4 text-slate-600 dark:text-slate-300">
+                                <span x-text="service.duracion ? service.duracion + ' min' : '—'"></span>
+                            </td>
+                            <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">
+                                $<span x-text="parseFloat(service.precio).toFixed(2)"></span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400">
+                                    Activo
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <div class="flex justify-end gap-2 items-center">
+                                    <button x-on:click="
+                                        editModal = true; 
+                                        editAction = '/app/servicios/' + service.id + '/update';
+                                        editNombre = service.nombre;
+                                        editPrecio = service.precio;
+                                        editDuracion = service.duracion;
+                                    " class="p-2 text-slate-400 hover:text-barber-accent transition-colors" title="Editar">
+                                        <i data-lucide="edit" class="w-4 h-4"></i>
+                                    </button>
+                                    <button type="button" x-on:click="
+                                        deleteModal = true;
+                                        deleteAction = '/app/servicios/' + service.id + '/delete';
+                                    " class="p-2 text-slate-400 hover:text-red-500 transition-colors" title="Eliminar">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
 
-                                <!-- Botón Eliminar (Abre el modal) -->
-                                <button type="button" x-on:click="
-                                    deleteModal = true;
-                                    deleteAction = '{{ route('app.servicios.delete', $service->id) }}';
-                                " class="p-2 text-slate-400 hover:text-red-500 transition-colors" title="Eliminar">
-                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="5" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
-                            <i data-lucide="scissors" class="w-12 h-12 mx-auto mb-3 text-slate-300 dark:text-slate-600"></i>
-                            <p>No hay servicios registrados todavía.</p>
-                        </td>
-                    </tr>
-                    @endforelse
+                    <template x-if="filteredServices.length === 0">
+                        <tr>
+                            <td colspan="5" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
+                                <i data-lucide="scissors" class="w-12 h-12 mx-auto mb-3 text-slate-300 dark:text-slate-600"></i>
+                                <p x-text="search !== '' ? 'No se encontraron servicios con ese criterio.' : 'No hay servicios registrados todavía.'"></p>
+                            </td>
+                        </tr>
+                    </template>
                 </tbody>
             </table>
         </div>
-
-        @if($services->hasPages())
-        <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-800/30">
-            {{ $services->links() }}
-        </div>
-        @endif
     </div>
+
+    <!-- ========================================== -->
+    <!-- VISTA MÓVIL (Tarjetas estilo App) -->
+    <!-- ========================================== -->
+    <div class="md:hidden space-y-3 pb-24">
+        <template x-for="service in filteredServices" :key="service.id">
+            <div class="bg-white dark:bg-barber-card-dark rounded-2xl p-4 shadow-sm border border-slate-200 dark:border-slate-700/50 flex flex-col gap-3 relative overflow-hidden">
+                <!-- Info Principal -->
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="font-bold text-slate-900 dark:text-white text-lg" x-text="service.nombre"></h3>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1.5">
+                            <i data-lucide="clock" class="w-4 h-4"></i>
+                            <span x-text="service.duracion ? service.duracion + ' minutos' : 'Duración no definida'"></span>
+                        </p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-lg font-extrabold text-barber-accent">$<span x-text="parseFloat(service.precio).toFixed(2)"></span></p>
+                        <span class="inline-block mt-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400">Activo</span>
+                    </div>
+                </div>
+
+                <!-- Acciones -->
+                <div class="flex items-center gap-2 mt-2 pt-3 border-t border-slate-100 dark:border-slate-700/50">
+                    <button x-on:click="
+                            editModal = true; 
+                            editAction = '/app/servicios/' + service.id + '/update';
+                            editNombre = service.nombre;
+                            editPrecio = service.precio;
+                            editDuracion = service.duracion;
+                        " class="flex-1 flex justify-center items-center gap-2 py-2 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                        <i data-lucide="edit" class="w-4 h-4"></i> Editar
+                    </button>
+                    <button type="button" x-on:click="
+                            deleteModal = true;
+                            deleteAction = '/app/servicios/' + service.id + '/delete';
+                        " class="flex-1 flex justify-center items-center gap-2 py-2 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-xl text-sm font-medium hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i> Eliminar
+                    </button>
+                </div>
+            </div>
+        </template>
+
+        <template x-if="filteredServices.length === 0">
+            <div class="bg-white dark:bg-barber-card-dark rounded-2xl p-10 text-center border border-slate-200 dark:border-slate-700/50 flex flex-col items-center justify-center">
+                <div class="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+                    <i data-lucide="scissors" class="w-8 h-8 text-slate-300 dark:text-slate-600"></i>
+                </div>
+                <h4 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Sin servicios</h4>
+                <p class="text-slate-500 dark:text-slate-400 text-sm" x-text="search !== '' ? 'No se encontraron resultados.' : 'No has agregado ningún servicio todavía.'"></p>
+            </div>
+        </template>
+    </div>
+
+    <!-- BOTÓN FLOTANTE (FAB) SOLO PARA MÓVIL -->
+    <button x-on:click="openModal = true" class="md:hidden fixed bottom-6 right-6 w-14 h-14 bg-barber-accent hover:bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center z-40 transition-transform active:scale-95">
+        <i data-lucide="plus" class="w-6 h-6"></i>
+    </button>
 
     <!-- MODAL DE CREACIÓN -->
     <div x-show="openModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
@@ -224,7 +352,7 @@
         </div>
     </div>
 
-    <!-- MODAL DE ELIMINAR (ELEGANTE) -->
+    <!-- MODAL DE ELIMINAR -->
     <div x-show="deleteModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div x-show="deleteModal" x-transition.opacity class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity"></div>
 
@@ -240,8 +368,6 @@
 
                 <form :action="deleteAction" method="POST">
                     @csrf
-                    <!-- IMPORTANTE: No usar @method('DELETE') para evitar errores de ruta -->
-
                     <div class="p-6">
                         <div class="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 dark:bg-red-500/20 rounded-full mb-4">
                             <i data-lucide="alert-triangle" class="w-6 h-6 text-red-600 dark:text-red-400"></i>

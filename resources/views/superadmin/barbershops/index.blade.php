@@ -3,7 +3,7 @@
 @section('title', 'Barberías')
 
 @section('content')
-<!-- Envolvemos todo en x-data para controlar los modales y sus variables -->
+<!-- Envolvemos todo en x-data para controlar los modales, las variables y el buscador -->
 <div x-data="{ 
     openModal: {{ $errors->any() && !request()->isMethod('PUT') ? 'true' : 'false' }}, 
     openMap: null,
@@ -14,19 +14,40 @@
     editDireccion: '',
     editEstado: '',
     deleteModal: false,
-    deleteAction: ''
+    deleteAction: '',
+    
+    // Variables para el buscador
+    search: '',
+    barbershops: {{ $barbershops->items() ? json_encode($barbershops->items()) : '[]' }},
+    get filteredBarbershops() {
+        if (this.search === '') return this.barbershops;
+        let query = this.search.toLowerCase();
+        return this.barbershops.filter(b => 
+            b.nombre.toLowerCase().includes(query) || 
+            (b.users && b.users.length > 0 && b.users[0].name.toLowerCase().includes(query)) ||
+            (b.users && b.users.length > 0 && b.users[0].username.toLowerCase().includes(query))
+        );
+    }
 }">
 
-    <div class="flex justify-between items-center mb-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
             <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Barberías</h2>
             <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Gestiona las barberías registradas en el sistema.</p>
         </div>
-        <!-- Botón que abre el modal de Crear -->
-        <button x-on:click="openModal = true" class="bg-barber-accent hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-xl transition-all flex items-center gap-2 shadow-sm">
-            <i data-lucide="plus" class="w-5 h-5"></i>
-            Nueva Barbería
-        </button>
+
+        <div class="flex flex-col sm:flex-row w-full sm:w-auto gap-3">
+            <!-- BUSCADOR EN TIEMPO REAL -->
+            <div class="relative w-full sm:w-64">
+                <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-400"></i>
+                <input type="text" x-model="search" placeholder="Buscar barbería o admin..." class="w-full pl-9 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent text-sm">
+            </div>
+
+            <button x-on:click="openModal = true" class="bg-barber-accent hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm shrink-0">
+                <i data-lucide="plus" class="w-5 h-5"></i>
+                Nueva Barbería
+            </button>
+        </div>
     </div>
 
     <div class="bg-white dark:bg-barber-card-dark rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700/50 overflow-hidden">
@@ -43,100 +64,91 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200 dark:divide-slate-700/50">
-                    @forelse ($barbershops as $barbershop)
-                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                        <td class="px-6 py-4">
-                            <div class="font-medium text-slate-900 dark:text-white">{{ $barbershop->nombre }}</div>
-                            <div class="text-xs text-slate-500 dark:text-slate-400">{{ $barbershop->slug }}</div>
-                        </td>
-                        <td class="px-6 py-4">
-                            @if($barbershop->direccion)
-                            <button type="button"
-                                data-mapa="{{ base64_encode($barbershop->direccion) }}"
-                                x-on:click="openMap = atob($event.currentTarget.dataset.mapa)"
-                                class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 hover:text-barber-accent transition-colors"
-                                title="Ver mapa">
-                                <i data-lucide="map-pin" class="w-4 h-4"></i>
-                                Ver mapa
-                            </button>
-                            @else
-                            <span class="text-sm text-slate-400">No asignada</span>
-                            @endif
-                        </td>
-                        <td class="px-6 py-4">
-                            @php
-                            $color = match($barbershop->estado) {
-                            'activa' => 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400',
-                            'en_prueba' => 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400',
-                            'suspendida' => 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400',
-                            'cancelada' => 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400',
-                            };
-                            @endphp
-                            <span class="px-2.5 py-1 rounded-full text-xs font-medium capitalize {{ $color }}">
-                                {{ str_replace('_', ' ', $barbershop->estado) }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4">
-                            @php
-                            $admin = $barbershop->users->first();
-                            @endphp
-                            @if($admin)
-                            <div class="text-sm font-medium text-slate-900 dark:text-white">
-                                {{ $admin->name }}
-                            </div>
-                            <div class="text-xs text-slate-500 dark:text-slate-400">
-                                @ {{ $admin->username }}
-                            </div>
-                            @else
-                            <span class="text-sm text-slate-400">Sin admin</span>
-                            @endif
-                        </td>
-                        <td class="px-6 py-4 text-slate-600 dark:text-slate-300 text-sm">
-                            {{ $barbershop->created_at->format('d/m/Y') }}
-                        </td>
-                        <td class="px-6 py-4 text-right">
-                            <div class="flex justify-end gap-2">
-                                <!-- Botón Editar -->
-                                <button x-on:click="
-                                    editModal = true; 
-                                    editAction = '{{ route('superadmin.barbershops.update', $barbershop) }}';
-                                    editNombre = '{{ addslashes($barbershop->nombre) }}';
-                                    editTelefono = '{{ str_replace('+503 ', '', $barbershop->telefono) }}';
-                                    editDireccion = '{{ addslashes($barbershop->direccion) }}';
-                                    editEstado = '{{ $barbershop->estado }}';
-                                " class="p-2 text-slate-400 hover:text-barber-accent transition-colors" title="Editar">
-                                    <i data-lucide="edit" class="w-4 h-4"></i>
-                                </button>
+                    <!-- Iteramos sobre la lista filtrada de Alpine -->
+                    <template x-for="barbershop in filteredBarbershops" :key="barbershop.id">
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                            <td class="px-6 py-4">
+                                <div class="font-medium text-slate-900 dark:text-white" x-text="barbershop.nombre"></div>
+                                <div class="text-xs text-slate-500 dark:text-slate-400" x-text="barbershop.slug"></div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <template x-if="barbershop.direccion">
+                                    <button type="button"
+                                        :data-mapa="btoa(barbershop.direccion)"
+                                        x-on:click="openMap = atob($event.currentTarget.dataset.mapa)"
+                                        class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 hover:text-barber-accent transition-colors"
+                                        title="Ver mapa">
+                                        <i data-lucide="map-pin" class="w-4 h-4"></i>
+                                        Ver mapa
+                                    </button>
+                                </template>
+                                <template x-if="!barbershop.direccion">
+                                    <span class="text-sm text-slate-400">No asignada</span>
+                                </template>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2.5 py-1 rounded-full text-xs font-medium capitalize"
+                                    :class="{
+                                        'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400': barbershop.estado === 'activa',
+                                        'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400': barbershop.estado === 'en_prueba',
+                                        'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400': barbershop.estado === 'suspendida',
+                                        'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400': barbershop.estado === 'cancelada'
+                                    }" x-text="barbershop.estado.replace('_', ' ')">
+                                </span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <template x-if="barbershop.users && barbershop.users.length > 0">
+                                    <div>
+                                        <div class="text-sm font-medium text-slate-900 dark:text-white" x-text="barbershop.users[0].name"></div>
+                                        <div class="text-xs text-slate-500 dark:text-slate-400" x-text="'@' + barbershop.users[0].username"></div>
+                                    </div>
+                                </template>
+                                <template x-if="!barbershop.users || barbershop.users.length === 0">
+                                    <span class="text-sm text-slate-400">Sin admin</span>
+                                </template>
+                            </td>
+                            <td class="px-6 py-4 text-slate-600 dark:text-slate-300 text-sm">
+                                <span x-text="new Date(barbershop.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })"></span>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <div class="flex justify-end gap-2">
+                                    <!-- Botón Editar -->
+                                    <button x-on:click="
+                                        editModal = true; 
+                                        editAction = '/superadmin/barbershops/' + barbershop.id;
+                                        editNombre = barbershop.nombre;
+                                        editTelefono = barbershop.telefono ? barbershop.telefono.replace('+503 ', '') : '';
+                                        editDireccion = barbershop.direccion || '';
+                                        editEstado = barbershop.estado;
+                                    " class="p-2 text-slate-400 hover:text-barber-accent transition-colors" title="Editar">
+                                        <i data-lucide="edit" class="w-4 h-4"></i>
+                                    </button>
 
-                                <!-- Botón Eliminar (abre el modal) -->
-                                <button type="button" x-on:click="
-                                    deleteModal = true;
-                                    deleteAction = '{{ route('superadmin.barbershops.destroy', $barbershop) }}';
-                                " class="p-2 text-slate-400 hover:text-red-500 transition-colors" title="Eliminar">
-                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="6" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
-                            <i data-lucide="store" class="w-12 h-12 mx-auto mb-3 text-slate-300 dark:text-slate-600"></i>
-                            <p>No hay barberías registradas todavía.</p>
-                        </td>
-                    </tr>
-                    @endforelse
+                                    <!-- Botón Eliminar -->
+                                    <button type="button" x-on:click="
+                                        deleteModal = true;
+                                        deleteAction = '/superadmin/barbershops/' + barbershop.id;
+                                    " class="p-2 text-slate-400 hover:text-red-500 transition-colors" title="Eliminar">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
+
+                    <!-- Mostrar mensaje si no hay resultados -->
+                    <template x-if="filteredBarbershops.length === 0">
+                        <tr>
+                            <td colspan="6" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
+                                <i data-lucide="store" class="w-12 h-12 mx-auto mb-3 text-slate-300 dark:text-slate-600"></i>
+                                <p x-text="search !== '' ? 'No se encontraron barberías con ese criterio.' : 'No hay barberías registradas todavía.'"></p>
+                            </td>
+                        </tr>
+                    </template>
                 </tbody>
             </table>
         </div>
-
-        @if($barbershops->hasPages())
-        <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-800/30">
-            {{ $barbershops->links() }}
-        </div>
-        @endif
     </div>
-
     <!-- MODAL DE CREACIÓN -->
     <div x-show="openModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div x-show="openModal" x-transition.opacity class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity"></div>
@@ -161,7 +173,6 @@
                     </div>
 
                     <div class="px-6 py-4 space-y-4">
-                        <!-- Errores dentro del modal -->
                         @if ($errors->any() && !request()->isMethod('PUT'))
                         <div class="rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-2 text-sm text-left">
                             <ul class="list-disc list-inside">
@@ -205,19 +216,14 @@
                                 Credenciales de Acceso (Administrador de la Barbería)
                             </h4>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <!-- NUEVO CAMPO: Nombre Completo del Admin -->
                                 <div class="md:col-span-2">
                                     <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nombre completo del Administrador *</label>
                                     <input type="text" name="admin_name" value="{{ old('admin_name') }}" required placeholder="Ej. Carlos Lizama" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent">
                                 </div>
-
-                                <!-- Usuario -->
                                 <div>
                                     <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nombre de usuario *</label>
                                     <input type="text" name="admin_username" value="{{ old('admin_username') }}" required autocomplete="off" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent">
                                 </div>
-
-                                <!-- Contraseña con Ojito -->
                                 <div x-data="{ showPassword: false }">
                                     <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Contraseña *</label>
                                     <div class="relative">
@@ -252,24 +258,14 @@
     <!-- MODAL DE MAPA -->
     <div x-show="openMap !== null" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div x-show="openMap !== null" x-transition.opacity class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity"></div>
-
         <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-            <div x-show="openMap !== null"
-                x-transition:enter="ease-out duration-300"
-                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                x-transition:leave="ease-in duration-200"
-                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                class="relative transform overflow-hidden rounded-2xl bg-white dark:bg-barber-card-dark text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl border border-slate-200 dark:border-slate-700/50">
-
+            <div x-show="openMap !== null" x-transition class="relative transform overflow-hidden rounded-2xl bg-white dark:bg-barber-card-dark text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl border border-slate-200 dark:border-slate-700/50">
                 <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700/50 flex justify-between items-center">
                     <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Ubicación de la Barbería</h3>
                     <button type="button" x-on:click="openMap = null" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                         <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
                 </div>
-
                 <div class="p-6">
                     <div class="w-full h-96 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700/50 [&>iframe]:w-full [&>iframe]:h-full" x-html="openMap"></div>
                 </div>
@@ -338,6 +334,19 @@
                             <div class="md:col-span-2">
                                 <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Ubicación (Google Maps) *</label>
                                 <input type="text" name="direccion" x-model="editDireccion" required class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-barber-accent">
+                            </div>
+                        </div>
+
+                        <!-- NUEVA SECCIÓN DE RESTABLECER CONTRASEÑA -->
+                        <div class="pt-4 border-t border-slate-200 dark:border-slate-700/50 mt-4">
+                            <h4 class="text-sm font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                                <i data-lucide="key" class="w-4 h-4 text-red-500"></i>
+                                Restablecer Contraseña del Dueño
+                            </h4>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nueva Contraseña (Opcional)</label>
+                                <input type="text" name="new_password" placeholder="Dejar en blanco para no cambiar la actual" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2 focus:ring-2 focus:ring-red-500">
+                                <p class="text-xs text-slate-500 mt-1">Si escribes aquí, la contraseña del administrador se actualizará inmediatamente.</p>
                             </div>
                         </div>
                     </div>

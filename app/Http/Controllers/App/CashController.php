@@ -12,13 +12,27 @@ use Carbon\Carbon;
 
 class CashController extends Controller
 {
-    // 1. Vista de Ventas de Productos
-    public function indexVentas()
+    // 1. Vista de Ventas de Productos (CON FILTRO DE RANGO DE FECHAS)
+    public function indexVentas(Request $request)
     {
-        $hoy = Carbon::today();
+        $fechaInicio = Carbon::today()->toDateString();
+        $fechaFin = Carbon::today()->toDateString();
+        $rango = $request->get('rango');
 
-        $ventas = Transaction::whereDate('created_at', $hoy)
-            ->where('tipo', 'ingreso_producto')
+        if ($rango) {
+            $fechas = explode(' a ', $rango);
+            if (count($fechas) == 2) {
+                $fechaInicio = $fechas[0];
+                $fechaFin = $fechas[1];
+            } else {
+                $fechaInicio = $rango;
+                $fechaFin = $rango;
+            }
+        }
+
+        $ventas = Transaction::where('tipo', 'ingreso_producto')
+            ->whereDate('created_at', '>=', $fechaInicio)
+            ->whereDate('created_at', '<=', $fechaFin)
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -29,36 +43,69 @@ class CashController extends Controller
             ->orderBy('nombre')
             ->get();
 
-        return view('app.cash.ventas', compact('ventas', 'totalVentas', 'products'));
+        return view('app.cash.ventas', compact('ventas', 'totalVentas', 'products', 'rango'));
     }
 
-    // 2. Vista de Gastos
-    public function indexGastos()
+    // 2. Vista de Gastos (CON FILTRO DE RANGO DE FECHAS)
+    public function indexGastos(Request $request)
     {
-        $hoy = Carbon::today();
-        $gastos = Transaction::whereDate('created_at', $hoy)
-            ->where('tipo', 'gasto')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $fechaInicio = Carbon::today()->toDateString();
+        $fechaFin = Carbon::today()->toDateString();
+        $rango = $request->get('rango');
+        $tipo = $request->get('tipo');
 
+        if ($rango) {
+            $fechas = explode(' a ', $rango);
+            if (count($fechas) == 2) {
+                $fechaInicio = $fechas[0];
+                $fechaFin = $fechas[1];
+            } else {
+                $fechaInicio = $rango;
+                $fechaFin = $rango;
+            }
+        }
+
+        $query = Transaction::where('tipo', 'gasto')
+            ->whereDate('created_at', '>=', $fechaInicio)
+            ->whereDate('created_at', '<=', $fechaFin);
+
+        if ($tipo === 'compra') {
+            $query->where('descripcion', 'like', 'Compra:%');
+        } elseif ($tipo === 'normal') {
+            $query->where('descripcion', 'not like', 'Compra:%');
+        }
+
+        $gastos = $query->orderBy('created_at', 'desc')->get();
         $totalGastos = $gastos->sum('monto');
 
-        return view('app.cash.gastos', compact('gastos', 'totalGastos'));
+        $products = Product::where('activo', true)->orderBy('nombre')->get();
+
+        return view('app.cash.gastos', compact('gastos', 'totalGastos', 'products', 'rango', 'tipo', 'fechaInicio', 'fechaFin'));
     }
 
-    // 3. Vista de Pagos a Barberos (CON FILTROS)
+    // 3. Vista de Pagos a Barberos (CON FILTRO DE RANGO DE FECHAS)
     public function indexPagos(Request $request)
     {
-        // Por defecto mostramos el día de hoy si no hay filtros
-        $fechaInicio = $request->get('fecha_inicio', Carbon::today()->toDateString());
-        $fechaFin = $request->get('fecha_fin', Carbon::today()->toDateString());
+        $fechaInicio = Carbon::today()->toDateString();
+        $fechaFin = Carbon::today()->toDateString();
+        $rango = $request->get('rango');
         $barberId = $request->get('barber_id');
+
+        if ($rango) {
+            $fechas = explode(' a ', $rango);
+            if (count($fechas) == 2) {
+                $fechaInicio = $fechas[0];
+                $fechaFin = $fechas[1];
+            } else {
+                $fechaInicio = $rango;
+                $fechaFin = $rango;
+            }
+        }
 
         $query = Transaction::where('tipo', 'pago_barbero')
             ->whereDate('created_at', '>=', $fechaInicio)
             ->whereDate('created_at', '<=', $fechaFin);
 
-        // Filtro opcional por barbero (buscando en la descripción)
         if ($barberId) {
             $barber = Barber::find($barberId);
             if ($barber) {
@@ -68,10 +115,9 @@ class CashController extends Controller
 
         $pagos = $query->orderBy('created_at', 'desc')->get();
         $totalPagos = $pagos->sum('monto');
-
         $barbers = Barber::where('activo', true)->orderBy('nombre')->get();
 
-        return view('app.cash.pagos', compact('pagos', 'totalPagos', 'barbers', 'fechaInicio', 'fechaFin', 'barberId'));
+        return view('app.cash.pagos', compact('pagos', 'totalPagos', 'barbers', 'rango', 'barberId', 'fechaInicio', 'fechaFin'));
     }
 
     // 4. Vista de Cierre de Caja
@@ -79,21 +125,10 @@ class CashController extends Controller
     {
         $hoy = Carbon::today();
 
-        $totalServicios = Transaction::whereDate('created_at', $hoy)
-            ->where('tipo', 'ingreso_servicio')
-            ->sum('monto');
-
-        $totalVentas = Transaction::whereDate('created_at', $hoy)
-            ->where('tipo', 'ingreso_producto')
-            ->sum('monto');
-
-        $totalGastos = Transaction::whereDate('created_at', $hoy)
-            ->where('tipo', 'gasto')
-            ->sum('monto');
-
-        $totalPagos = Transaction::whereDate('created_at', $hoy)
-            ->where('tipo', 'pago_barbero')
-            ->sum('monto');
+        $totalServicios = Transaction::whereDate('created_at', $hoy)->where('tipo', 'ingreso_servicio')->sum('monto');
+        $totalVentas = Transaction::whereDate('created_at', $hoy)->where('tipo', 'ingreso_producto')->sum('monto');
+        $totalGastos = Transaction::whereDate('created_at', $hoy)->where('tipo', 'gasto')->sum('monto');
+        $totalPagos = Transaction::whereDate('created_at', $hoy)->where('tipo', 'pago_barbero')->sum('monto');
 
         $ingresosTotales = $totalServicios + $totalVentas;
         $egresosTotales = $totalGastos + $totalPagos;
@@ -127,19 +162,14 @@ class CashController extends Controller
 
             foreach ($validated['items'] as $item) {
                 $product = Product::findOrFail($item['product_id']);
-
                 if ($product->stock < $item['cantidad']) {
                     throw new \Exception("No hay suficiente stock de: " . $product->nombre);
                 }
-
                 $totalVenta += ($product->precio * $item['cantidad']);
                 $descripcionVenta[] = $product->nombre . ' (x' . $item['cantidad'] . ')';
-
-                // Descontar stock
                 $product->decrement('stock', $item['cantidad']);
             }
 
-            // Registrar la venta en caja
             Transaction::create([
                 'tipo' => 'ingreso_producto',
                 'descripcion' => implode(', ', $descripcionVenta),
@@ -147,7 +177,6 @@ class CashController extends Controller
             ]);
 
             DB::commit();
-
             return redirect()->route('app.cash.ventas')->with('success', 'Venta registrada y stock actualizado.');
         } catch (\Exception $e) {
             DB::rollBack();
@@ -155,32 +184,62 @@ class CashController extends Controller
         }
     }
 
-    // Acción para guardar un Gasto o Pago a Barbero
+    // Acción para guardar un Gasto, Pago o Compra de Mercancía
     public function storeGasto(Request $request)
     {
         $validated = $request->validate([
-            'tipo' => ['required', 'in:gasto,pago_barbero'],
+            'tipo' => ['required', 'in:gasto,pago_barbero,compra_producto'],
             'descripcion' => ['required', 'string', 'max:255'],
             'monto' => ['required', 'numeric', 'min:0.01'],
-            'concepto' => ['nullable', 'string', 'max:255'], // Nuevo campo
+            'concepto' => ['nullable', 'string', 'max:255'],
+            'product_id' => ['nullable', 'exists:products,id'],
+            'cantidad' => ['nullable', 'integer', 'min:1'],
         ]);
 
-        // Si es un pago a barbero, armamos la descripción con el concepto
-        $descripcionFinal = $validated['descripcion'];
-        if ($validated['tipo'] === 'pago_barbero' && !empty($validated['concepto'])) {
-            $descripcionFinal = $validated['descripcion'] . ' (' . $validated['concepto'] . ')';
-        }
+        try {
+            DB::beginTransaction();
 
-        Transaction::create([
-            'tipo' => $validated['tipo'],
-            'descripcion' => $descripcionFinal,
-            'monto' => $validated['monto'],
-        ]);
+            $descripcionFinal = $validated['descripcion'];
+            $tipoFinal = $validated['tipo'];
 
-        if ($validated['tipo'] === 'gasto') {
-            return redirect()->route('app.cash.gastos')->with('success', 'Gasto registrado exitosamente.');
-        } else {
-            return redirect()->route('app.cash.pagos')->with('success', 'Pago a barbero registrado exitosamente.');
+            if ($validated['tipo'] === 'pago_barbero' && !empty($validated['concepto'])) {
+                $descripcionFinal = $validated['descripcion'] . ' (' . $validated['concepto'] . ')';
+            }
+
+            if ($validated['tipo'] === 'compra_producto') {
+                if (empty($validated['product_id']) || empty($validated['cantidad'])) {
+                    throw new \Exception("Debes seleccionar un producto y una cantidad.");
+                }
+
+                $product = Product::findOrFail($validated['product_id']);
+
+                if ($product->created_at->toDateString() === now()->toDateString()) {
+                    $product->stock = $validated['cantidad'];
+                    $product->save();
+                } else {
+                    $product->increment('stock', $validated['cantidad']);
+                }
+
+                $descripcionFinal = 'Compra: ' . $product->nombre . ' (x' . $validated['cantidad'] . ')';
+                $tipoFinal = 'gasto';
+            }
+
+            Transaction::create([
+                'tipo' => $tipoFinal,
+                'descripcion' => $descripcionFinal,
+                'monto' => $validated['monto'],
+            ]);
+
+            DB::commit();
+
+            if ($validated['tipo'] === 'gasto' || $validated['tipo'] === 'compra_producto') {
+                return redirect()->route('app.cash.gastos')->with('success', 'Movimiento registrado exitosamente.');
+            } else {
+                return redirect()->route('app.cash.pagos')->with('success', 'Pago a barbero registrado exitosamente.');
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withInput()->withErrors(['error' => $e->getMessage()]);
         }
     }
 
@@ -188,14 +247,37 @@ class CashController extends Controller
     public function destroy(Transaction $transaction)
     {
         $tipo = $transaction->tipo;
-        $transaction->delete();
+        $descripcion = $transaction->descripcion;
 
-        if ($tipo === 'ingreso_producto') {
-            return redirect()->route('app.cash.ventas')->with('success', 'Movimiento eliminado.');
-        } elseif ($tipo === 'gasto') {
-            return redirect()->route('app.cash.gastos')->with('success', 'Movimiento eliminado.');
-        } else {
-            return redirect()->route('app.cash.pagos')->with('success', 'Movimiento eliminado.');
+        try {
+            DB::beginTransaction();
+
+            if (str_starts_with($descripcion, 'Compra: ')) {
+                if (preg_match('/^Compra:\s*(.*?)\s*\(x(\d+)\)$/', $descripcion, $matches)) {
+                    $productNombre = $matches[1];
+                    $cantidadComprada = (int)$matches[2];
+
+                    $product = Product::where('nombre', $productNombre)->first();
+
+                    if ($product && $product->created_at->toDateString() !== now()->toDateString()) {
+                        $product->decrement('stock', $cantidadComprada);
+                    }
+                }
+            }
+
+            $transaction->delete();
+            DB::commit();
+
+            if ($tipo === 'ingreso_producto') {
+                return redirect()->route('app.cash.ventas')->with('success', 'Movimiento eliminado.');
+            } elseif ($tipo === 'gasto') {
+                return redirect()->route('app.cash.gastos')->with('success', 'Movimiento eliminado y stock actualizado.');
+            } else {
+                return redirect()->route('app.cash.pagos')->with('success', 'Movimiento eliminado.');
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'No se pudo eliminar el movimiento: ' . $e->getMessage()]);
         }
     }
 }

@@ -10,11 +10,13 @@ use App\Models\Service;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class AppointmentController extends Controller
 {
     public function index(Request $request)
     {
+        $user = auth()->user();
         $fecha = $request->get('fecha', Carbon::today()->toDateString());
         $search = $request->get('search');
 
@@ -23,6 +25,11 @@ class AppointmentController extends Controller
             ->whereHas('client')
             ->whereHas('service')
             ->whereDate('fecha_hora', $fecha);
+
+        // SI ES BARBERO, SOLO VE SUS CITAS
+        if ($user->hasRole('barbero')) {
+            $query->where('barber_id', $user->barber->id);
+        }
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -45,11 +52,16 @@ class AppointmentController extends Controller
 
     public function create()
     {
+        $user = auth()->user();
+
         $clients = Client::orderBy('nombre')->get();
         $barbers = Barber::where('activo', true)->orderBy('nombre')->get();
         $services = Service::where('activo', true)->orderBy('nombre')->get();
 
-        return view('app.appointments.create', compact('clients', 'barbers', 'services'));
+        // Si es barbero, el formulario de agendar cita debe venir con su ID preseleccionado
+        $defaultBarberId = $user->hasRole('barbero') ? $user->barber->id : null;
+
+        return view('app.appointments.create', compact('clients', 'barbers', 'services', 'defaultBarberId'));
     }
 
     public function store(Request $request)
@@ -90,6 +102,11 @@ class AppointmentController extends Controller
 
     public function update(Request $request, Appointment $appointment)
     {
+        // SEGURIDAD: Evitar que un barbero edite la cita de otro
+        if (auth()->user()->hasRole('barbero') && $appointment->barber_id !== auth()->user()->barber->id) {
+            abort(403, 'No tienes permiso para editar esta cita.');
+        }
+
         $validated = $request->validate([
             'barber_id' => ['required', 'exists:barbers,id'],
             'service_id' => ['required', 'exists:services,id'],
@@ -150,9 +167,10 @@ class AppointmentController extends Controller
 
     public function destroy(Appointment $appointment)
     {
-        $appointment->delete();
+        // BORRADO REAL DE LA BASE DE DATOS
+        $appointment->forceDelete();
 
-        return redirect()->back()->with('success', 'Cita eliminada.');
+        return redirect()->back()->with('success', 'Cita eliminada permanentemente.');
     }
 
     public function calendar()
@@ -162,37 +180,31 @@ class AppointmentController extends Controller
 
     public function calendarData()
     {
-        $appointments = Appointment::with(['client', 'barber', 'service'])->get();
+        $user = auth()->user();
 
-        // Paleta de colores para los barberos
-        $coloresBarberos = [
-            '#3B82F6', // Azul
-            '#10B981', // Verde Esmeralda
-            '#8B5CF6', // Morado
-            '#F59E0B', // Naranja
-            '#EF4444', // Rojo
-            '#06B6D4', // Cyan
-            '#EC4899', // Rosa
-            '#14B8A6', // Teal
-        ];
+        $query = Appointment::with(['client', 'barber', 'service'])
+            ->where('estado', '!=', 'cancelada');
 
-        $events = $appointments->map(function ($cita) use ($coloresBarberos) {
-            // Color fijo según el barbero
-            $colorIndex = $cita->barber_id % count($coloresBarberos);
-            $color = $coloresBarberos[$colorIndex];
+        // SI ES BARBERO, SOLO VE SUS EVENTOS EN EL CALENDARIO
+        if ($user->hasRole('barbero')) {
+            $query->where('barber_id', $user->barber->id);
+        }
 
-            // Si está cancelada, la pintamos de gris
-            if ($cita->estado === 'cancelada') {
-                $color = '#94A3B8';
-            }
+        $appointments = $query->get();
+
+        $events = $appointments->map(function ($cita) {
+            $color = match ($cita->estado) {
+                'pendiente' => '#3B82F6',
+                'completada' => '#10B981',
+                default => '#64748B',
+            };
 
             return [
                 'id' => $cita->id,
-                // Agregamos la hora al título para mejor lectura
-                'title' => $cita->fecha_hora->format('h:i A') . ' - ' . $cita->client->nombre,
+                'title' => $cita->client->nombre,
+                'date' => $cita->fecha_hora->format('Y-m-d'),
                 'start' => $cita->fecha_hora->toIso8601String(),
                 'backgroundColor' => $color,
-                'borderColor' => $color,
                 'extendedProps' => [
                     'cliente' => $cita->client->nombre,
                     'servicio' => $cita->service->nombre,

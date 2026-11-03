@@ -7,7 +7,8 @@ use App\Models\Concerns\BelongsToBarbershop;
 
 class Product extends Model
 {
-    use BelongsToBarbershop; // <-- Ya no está SoftDeletes
+    // Ya no usamos SoftDeletes
+    use BelongsToBarbershop;
 
     protected $fillable = [
         'barbershop_id',
@@ -28,6 +29,9 @@ class Product extends Model
         'activo' => 'boolean',
     ];
 
+    /**
+     * Relación con la categoría del producto.
+     */
     public function category()
     {
         return $this->belongsTo(Category::class, 'categoria_id');
