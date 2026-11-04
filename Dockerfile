@@ -20,6 +20,10 @@ RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
 # Instalar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+# Instalar Node.js (Necesario para Vite)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs
+
 # Crear directorio de trabajo
 WORKDIR /app
 
@@ -28,6 +32,9 @@ COPY . /app
 
 # Instalar dependencias de PHP (ignorando scripts para evitar errores)
 RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs
+
+# Instalar dependencias de Node y compilar los estilos (Tailwind/Vite)
+RUN npm install && npm run build
 
 # Dar permisos a storage
 RUN chmod -R 775 storage bootstrap/cache
