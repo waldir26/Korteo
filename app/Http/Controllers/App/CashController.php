@@ -9,10 +9,12 @@ use App\Models\Barber;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\CashCloseExport;
 
 class CashController extends Controller
 {
-    // 1. Vista de Ventas de Productos (CON FILTRO DE RANGO DE FECHAS)
     public function indexVentas(Request $request)
     {
         $fechaInicio = Carbon::today()->toDateString();
@@ -46,7 +48,6 @@ class CashController extends Controller
         return view('app.cash.ventas', compact('ventas', 'totalVentas', 'products', 'rango'));
     }
 
-    // 2. Vista de Gastos (CON FILTRO DE RANGO DE FECHAS)
     public function indexGastos(Request $request)
     {
         $fechaInicio = Carbon::today()->toDateString();
@@ -83,7 +84,6 @@ class CashController extends Controller
         return view('app.cash.gastos', compact('gastos', 'totalGastos', 'products', 'rango', 'tipo', 'fechaInicio', 'fechaFin'));
     }
 
-    // 3. Vista de Pagos a Barberos (CON FILTRO DE RANGO DE FECHAS)
     public function indexPagos(Request $request)
     {
         $fechaInicio = Carbon::today()->toDateString();
@@ -120,7 +120,6 @@ class CashController extends Controller
         return view('app.cash.pagos', compact('pagos', 'totalPagos', 'barbers', 'rango', 'barberId', 'fechaInicio', 'fechaFin'));
     }
 
-    // 4. Vista de Cierre de Caja
     public function indexCierre()
     {
         $hoy = Carbon::today();
@@ -145,7 +144,36 @@ class CashController extends Controller
         ));
     }
 
-    // Acción para guardar una Venta de Producto (Carrito)
+    // ==========================================
+    // EXPORTACIÓN DE CIERRE DE CAJA (PDF / EXCEL)
+    // ==========================================
+
+    public function exportCierrePdf()
+    {
+        $hoy = Carbon::today();
+
+        $totalServicios = Transaction::whereDate('created_at', $hoy)->where('tipo', 'ingreso_servicio')->sum('monto');
+        $totalVentas = Transaction::whereDate('created_at', $hoy)->where('tipo', 'ingreso_producto')->sum('monto');
+        $totalGastos = Transaction::whereDate('created_at', $hoy)->where('tipo', 'gasto')->sum('monto');
+        $totalPagos = Transaction::whereDate('created_at', $hoy)->where('tipo', 'pago_barbero')->sum('monto');
+        $ingresosTotales = $totalServicios + $totalVentas;
+        $egresosTotales = $totalGastos + $totalPagos;
+        $balanceFinal = $ingresosTotales - $egresosTotales;
+
+        $data = compact('totalServicios', 'totalVentas', 'totalGastos', 'totalPagos', 'ingresosTotales', 'egresosTotales', 'balanceFinal');
+        $pdf = Pdf::loadView('pdf.cierre-caja', $data);
+        return $pdf->download('Cierre_Caja_' . date('d-m-Y') . '.pdf');
+    }
+
+    public function exportCierreExcel()
+    {
+        return Excel::download(new CashCloseExport(), 'Cierre_Caja_' . date('d-m-Y') . '.xlsx');
+    }
+
+    // ==========================================
+    // ACCIONES DE CAJA (Guardar / Eliminar)
+    // ==========================================
+
     public function storeIngreso(Request $request)
     {
         $validated = $request->validate([
@@ -184,7 +212,6 @@ class CashController extends Controller
         }
     }
 
-    // Acción para guardar un Gasto, Pago o Compra de Mercancía
     public function storeGasto(Request $request)
     {
         $validated = $request->validate([
@@ -243,7 +270,6 @@ class CashController extends Controller
         }
     }
 
-    // Eliminar un movimiento
     public function destroy(Transaction $transaction)
     {
         $tipo = $transaction->tipo;

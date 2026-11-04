@@ -33,11 +33,27 @@ Route::middleware(['auth', 'barbershop'])->prefix('app')->name('app.')->group(fu
     Route::get('/calendario', [AppointmentController::class, 'calendar'])->name('appointments.calendar');
     Route::get('/calendario/data', [AppointmentController::class, 'calendarData'])->name('appointments.calendar.data');
 
+    // RUTAS DE EXPORTACIÓN GENERAL DE CITAS
+    Route::get('/citas/exportar/pdf', [AppointmentController::class, 'exportGeneralPdf'])->name('appointments.pdf-general');
+    Route::get('/citas/exportar/excel', [AppointmentController::class, 'exportGeneralExcel'])->name('appointments.export-general');
+
+    // RUTAS DE EXPORTACIÓN INDIVIDUAL DE CITAS
+    Route::get('/citas/{appointment}/pdf', [AppointmentController::class, 'exportSinglePdf'])->name('appointments.pdf-single');
+    Route::get('/citas/{appointment}/excel', [AppointmentController::class, 'exportSingleExcel'])->name('appointments.excel-single');
+
     // Clientes
     Route::get('/clientes', [ClientController::class, 'index'])->name('clientes.index');
     Route::post('/clientes', [ClientController::class, 'store'])->name('clientes.store');
     Route::post('/clientes/{client}/update', [ClientController::class, 'update'])->name('clientes.update');
     Route::post('/clientes/{client}/delete', [ClientController::class, 'destroy'])->name('clientes.delete');
+
+    // RUTAS DE EXPORTACIÓN GENERAL DE CLIENTES
+    Route::get('/clientes/exportar/pdf', [ClientController::class, 'exportGeneralPdf'])->name('clientes.pdf-general');
+    Route::get('/clientes/exportar/excel', [ClientController::class, 'exportGeneralExcel'])->name('clientes.export-general');
+
+    // RUTAS DE EXPORTACIÓN INDIVIDUAL DE CLIENTES
+    Route::get('/clientes/{client}/pdf', [ClientController::class, 'exportSinglePdf'])->name('clientes.pdf-single');
+    Route::get('/clientes/{client}/excel', [ClientController::class, 'exportSingleExcel'])->name('clientes.excel-single');
 
     // Perfil
     Route::get('/perfil', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -81,6 +97,10 @@ Route::middleware(['auth', 'barbershop'])->prefix('app')->name('app.')->group(fu
         Route::get('/finanzas/gastos', [CashController::class, 'indexGastos'])->name('cash.gastos');
         Route::get('/finanzas/pagos', [CashController::class, 'indexPagos'])->name('cash.pagos');
         Route::get('/finanzas/cierre', [CashController::class, 'indexCierre'])->name('cash.cierre');
+
+        // Exportación de Cierre de Caja
+        Route::get('/finanzas/cierre/pdf', [CashController::class, 'exportCierrePdf'])->name('cash.cierre.pdf');
+        Route::get('/finanzas/cierre/excel', [CashController::class, 'exportCierreExcel'])->name('cash.cierre.excel');
 
         // Acciones de Caja
         Route::post('/finanzas/ingreso', [CashController::class, 'storeIngreso'])->name('cash.store-ingreso');

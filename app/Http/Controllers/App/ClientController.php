@@ -7,6 +7,10 @@ use App\Models\Client;
 use App\Models\Appointment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\ClientsExport;
+use App\Exports\SingleClientExport;
 
 class ClientController extends Controller
 {
@@ -25,7 +29,7 @@ class ClientController extends Controller
 
         $clients = $query->paginate(10);
 
-        return view('app.clients.index', compact('clients'));
+        return view('app.clients.index', compact('clients', 'search'));
     }
 
     public function store(Request $request)
@@ -60,18 +64,53 @@ class ClientController extends Controller
     {
         try {
             DB::beginTransaction();
-
-            // 1. Desvinculamos las citas (para que no haya errores de historial)
             Appointment::where('client_id', $client->id)->update(['client_id' => null]);
-
-            // 2. Eliminamos el cliente de la base de datos de verdad
             $client->forceDelete();
-
             DB::commit();
             return redirect()->back()->with('success', 'Cliente eliminado permanentemente.');
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()->with('error', 'Error al eliminar el cliente: ' . $e->getMessage());
         }
+    }
+
+    // ==========================================
+    // MÉTODOS DE EXPORTACIÓN
+    // ==========================================
+
+    // PDF Individual (Ficha del Cliente)
+    public function exportSinglePdf(Client $client)
+    {
+        $pdf = Pdf::loadView('pdf.cliente', compact('client'));
+        return $pdf->download('Cliente_' . $client->id . '.pdf');
+    }
+
+    // Excel Individual
+    public function exportSingleExcel(Client $client)
+    {
+        return Excel::download(new SingleClientExport($client), 'Cliente_' . $client->id . '.xlsx');
+    }
+
+    // PDF General (Listado)
+    public function exportGeneralPdf(Request $request)
+    {
+        $query = Client::latest();
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('nombre', 'like', "%{$search}%")
+                    ->orWhere('telefono', 'like', "%{$search}%");
+            });
+        }
+        $clients = $query->get();
+        $pdf = Pdf::loadView('pdf.reporte-clientes', compact('clients'));
+        return $pdf->download('Reporte_Clientes_' . date('d-m-Y') . '.pdf');
+    }
+
+    // Excel General
+    public function exportGeneralExcel(Request $request)
+    {
+        $search = $request->get('search');
+        return Excel::download(new ClientsExport($search), 'Reporte_Clientes_' . date('d-m-Y') . '.xlsx');
     }
 }

@@ -17,4 +17,10 @@ class Client extends Model
         'email',
         'notas'
     ];
+
+    // RELACIÓN: Un cliente tiene muchas citas
+    public function appointments()
+    {
+        return $this->hasMany(Appointment::class);
+    }
 }

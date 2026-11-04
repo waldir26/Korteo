@@ -3,10 +3,17 @@
 @section('title', 'Cierre de Caja')
 
 @section('content')
-<div class="max-w-4xl mx-auto">
-    <div class="mb-6">
-        <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Cierre de Caja</h2>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Resumen general de todas las operaciones del día.</p>
+<div class="max-w-4xl mx-auto" x-data="{ exportModal: false }">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div>
+            <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Cierre de Caja</h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Resumen general de todas las operaciones del día.</p>
+        </div>
+
+        <!-- BOTÓN DE EXPORTAR -->
+        <button type="button" x-on:click="exportModal = true" class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 px-6 rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm shrink-0">
+            <i data-lucide="download" class="w-5 h-5"></i> Exportar Reporte
+        </button>
     </div>
 
     <!-- Tarjetas de Resumen -->
@@ -80,6 +87,50 @@
                 El balance del día quedó en cero. No hubo ganancias ni pérdidas.
                 @endif
         </p>
+    </div>
+
+    <!-- MODAL DE EXPORTAR -->
+    <div x-show="exportModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div x-show="exportModal" x-transition.opacity class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity" x-on:click="exportModal = false"></div>
+
+        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            <div x-show="exportModal"
+                x-transition:enter="ease-out duration-300"
+                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                x-transition:leave="ease-in duration-200"
+                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                class="relative transform overflow-hidden rounded-2xl bg-white dark:bg-barber-card-dark text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-slate-200 dark:border-slate-700/50">
+
+                <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700/50 flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Exportar Cierre de Caja</h3>
+                    <button type="button" x-on:click="exportModal = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <div class="px-6 py-6 space-y-3">
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mb-4 text-center">Selecciona el formato en el que deseas descargar el cierre del día de hoy.</p>
+
+                    <a href="{{ route('app.cash.cierre.pdf') }}" class="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors border border-red-200 dark:border-red-800">
+                        <i data-lucide="file-text" class="w-6 h-6"></i>
+                        <div>
+                            <p class="font-bold">Exportar a PDF</p>
+                            <p class="text-xs">Ideal para imprimir y firmar.</p>
+                        </div>
+                    </a>
+
+                    <a href="{{ route('app.cash.cierre.excel') }}" class="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-xl hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors border border-green-200 dark:border-green-800">
+                        <i data-lucide="file-spreadsheet" class="w-6 h-6"></i>
+                        <div>
+                            <p class="font-bold">Exportar a Excel</p>
+                            <p class="text-xs">Ideal para enviar al contador.</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 @endsection

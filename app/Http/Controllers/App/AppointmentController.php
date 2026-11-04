@@ -11,6 +11,10 @@ use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\AppointmentsExport;
+use App\Exports\SingleAppointmentExport;
 
 class AppointmentController extends Controller
 {
@@ -20,13 +24,11 @@ class AppointmentController extends Controller
         $fecha = $request->get('fecha', Carbon::today()->toDateString());
         $search = $request->get('search');
 
-        // Filtramos para que solo traiga citas donde el cliente y el servicio existan
         $query = Appointment::with(['client', 'barber', 'service'])
             ->whereHas('client')
             ->whereHas('service')
             ->whereDate('fecha_hora', $fecha);
 
-        // SI ES BARBERO, SOLO VE SUS CITAS
         if ($user->hasRole('barbero')) {
             $query->where('barber_id', $user->barber->id);
         }
@@ -43,7 +45,6 @@ class AppointmentController extends Controller
 
         $appointments = $query->orderBy('fecha_hora', 'asc')->get();
 
-        // Datos para el modal de edición
         $barbers = Barber::where('activo', true)->orderBy('nombre')->get();
         $services = Service::where('activo', true)->orderBy('nombre')->get();
 
@@ -58,7 +59,6 @@ class AppointmentController extends Controller
         $barbers = Barber::where('activo', true)->orderBy('nombre')->get();
         $services = Service::where('activo', true)->orderBy('nombre')->get();
 
-        // Si es barbero, el formulario de agendar cita debe venir con su ID preseleccionado
         $defaultBarberId = $user->hasRole('barbero') ? $user->barber->id : null;
 
         return view('app.appointments.create', compact('clients', 'barbers', 'services', 'defaultBarberId'));
@@ -77,7 +77,6 @@ class AppointmentController extends Controller
 
         $fechaHora = Carbon::parse($validated['fecha'] . ' ' . $validated['hora']);
 
-        // Validación: El barbero no puede tener 2 citas a la misma hora exacta
         $choque = Appointment::where('barber_id', $validated['barber_id'])
             ->where('fecha_hora', $fechaHora)
             ->where('estado', '!=', 'cancelada')
@@ -102,7 +101,6 @@ class AppointmentController extends Controller
 
     public function update(Request $request, Appointment $appointment)
     {
-        // SEGURIDAD: Evitar que un barbero edite la cita de otro
         if (auth()->user()->hasRole('barbero') && $appointment->barber_id !== auth()->user()->barber->id) {
             abort(403, 'No tienes permiso para editar esta cita.');
         }
@@ -117,7 +115,6 @@ class AppointmentController extends Controller
 
         $fechaHora = Carbon::parse($validated['fecha'] . ' ' . $validated['hora']);
 
-        // Validación estricta al editar (ignorando la cita actual)
         $choque = Appointment::where('barber_id', $validated['barber_id'])
             ->where('fecha_hora', $fechaHora)
             ->where('estado', '!=', 'cancelada')
@@ -140,7 +137,6 @@ class AppointmentController extends Controller
 
     public function pay(Appointment $appointment)
     {
-        // Registrar el ingreso en la caja
         Transaction::create([
             'tipo' => 'ingreso_servicio',
             'descripcion' => 'Cobro: ' . $appointment->service->nombre . ' (' . $appointment->client->nombre . ')',
@@ -148,7 +144,6 @@ class AppointmentController extends Controller
             'appointment_id' => $appointment->id,
         ]);
 
-        // Marcar la cita como completada
         $appointment->update(['estado' => 'completada']);
 
         return redirect()->back()->with('success', 'Pago registrado exitosamente y cita completada.');
@@ -167,7 +162,6 @@ class AppointmentController extends Controller
 
     public function destroy(Appointment $appointment)
     {
-        // BORRADO REAL DE LA BASE DE DATOS
         $appointment->forceDelete();
 
         return redirect()->back()->with('success', 'Cita eliminada permanentemente.');
@@ -185,7 +179,6 @@ class AppointmentController extends Controller
         $query = Appointment::with(['client', 'barber', 'service'])
             ->where('estado', '!=', 'cancelada');
 
-        // SI ES BARBERO, SOLO VE SUS EVENTOS EN EL CALENDARIO
         if ($user->hasRole('barbero')) {
             $query->where('barber_id', $user->barber->id);
         }
@@ -246,5 +239,57 @@ class AppointmentController extends Controller
         }
 
         return response()->json(['disponible' => true]);
+    }
+
+    // ==========================================
+    // MÉTODOS DE EXPORTACIÓN
+    // ==========================================
+
+    public function exportSinglePdf(Appointment $appointment)
+    {
+        $pdf = Pdf::loadView('pdf.cita', compact('appointment'));
+        return $pdf->download('Cita_' . $appointment->id . '.pdf');
+    }
+
+    public function exportSingleExcel(Appointment $appointment)
+    {
+        // Usamos la clase de Excel real (SingleAppointmentExport)
+        return Excel::download(new SingleAppointmentExport($appointment), 'Cita_' . $appointment->id . '.xlsx');
+    }
+
+    public function exportGeneralPdf(Request $request)
+    {
+        $query = Appointment::with(['client', 'barber', 'service']);
+
+        if ($request->filled('fecha')) {
+            $query->whereDate('fecha_hora', $request->fecha);
+        }
+        if ($request->filled('search')) {
+            $query->whereHas('client', function ($q) use ($request) {
+                $q->where('nombre', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        if (auth()->user()->hasRole('barbero')) {
+            $query->where('barber_id', auth()->user()->barber->id);
+        }
+
+        $appointments = $query->orderBy('fecha_hora', 'asc')->get();
+
+        $pdf = Pdf::loadView('pdf.reporte-citas', compact('appointments'));
+        return $pdf->download('Reporte_Citas_' . date('d-m-Y') . '.pdf');
+    }
+
+    public function exportGeneralExcel(Request $request)
+    {
+        $fecha = $request->get('fecha');
+        $search = $request->get('search');
+        $barberId = $request->get('barber_id');
+
+        if (auth()->user()->hasRole('barbero')) {
+            $barberId = auth()->user()->barber->id;
+        }
+
+        return Excel::download(new AppointmentsExport($fecha, $search, $barberId), 'Reporte_Citas_' . date('d-m-Y') . '.xlsx');
     }
 }

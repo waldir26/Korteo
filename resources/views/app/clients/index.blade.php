@@ -12,7 +12,11 @@
     editEmail: '',
     editNotas: '',
     deleteModal: false,
-    deleteAction: ''
+    deleteAction: '',
+    
+    // Variables para Exportación
+    exportModal: false,
+    exportSingleAction: ''
 }">
 
     <!-- Header Responsivo -->
@@ -38,10 +42,17 @@
                     <input type="text" name="search" value="{{ request('search') }}" placeholder="Ej. Juan Pérez..." class="w-full pl-10 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-barber-dark text-slate-800 dark:text-slate-100 px-3 py-2.5 focus:ring-2 focus:ring-barber-accent text-base">
                 </div>
             </div>
-            <div class="flex gap-2 w-full md:w-auto">
+
+            <div class="flex flex-wrap gap-2 w-full md:w-auto">
                 <button type="submit" class="flex-1 md:flex-none bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-medium py-2.5 px-6 rounded-xl transition-all flex items-center justify-center gap-2">
                     <i data-lucide="search" class="w-4 h-4"></i> Buscar
                 </button>
+
+                <!-- BOTÓN EXPORTAR GENERAL -->
+                <button type="button" x-on:click="exportSingleAction = ''; exportModal = true" class="flex-1 md:flex-none bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 px-6 rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm">
+                    <i data-lucide="download" class="w-4 h-4"></i> Exportar
+                </button>
+
                 @if(request('search'))
                 <a href="{{ route('app.clientes.index') }}" class="flex-1 md:flex-none text-sm font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white py-2.5 px-4 text-center bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center">Limpiar</a>
                 @endif
@@ -89,7 +100,15 @@
                             {{ $client->notas ?? '—' }}
                         </td>
                         <td class="px-6 py-4 text-right">
-                            <div class="flex justify-end gap-2">
+                            <div class="flex justify-end gap-2 items-center">
+                                <!-- BOTÓN EXPORTAR FILA -->
+                                <button type="button" x-on:click="
+                                    exportSingleAction = '{{ $client->id }}';
+                                    exportModal = true;
+                                " class="p-2 text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 rounded-lg transition-colors" title="Exportar este cliente">
+                                    <i data-lucide="download" class="w-4 h-4"></i>
+                                </button>
+
                                 <button x-on:click="
                                     editModal = true; 
                                     editAction = '{{ route('app.clientes.update', $client->id) }}';
@@ -166,7 +185,16 @@
             @endif
 
             <!-- Acciones -->
-            <div class="flex items-center gap-2 mt-1 pt-3 border-t border-slate-100 dark:border-slate-700/50">
+            <div class="flex items-center gap-2 mt-1 pt-3 border-t border-slate-100 dark:border-slate-700/50 flex-wrap">
+
+                <!-- Botón Exportar Móvil -->
+                <button type="button" x-on:click="
+                    exportSingleAction = '{{ $client->id }}';
+                    exportModal = true;
+                " class="flex items-center justify-center gap-2 px-3 py-2 bg-green-50 dark:bg-green-500/10 text-green-600 rounded-xl text-sm font-bold border border-green-100 dark:border-green-500/20 hover:bg-green-100 transition-colors" title="Exportar">
+                    <i data-lucide="download" class="w-4 h-4"></i> Exportar
+                </button>
+
                 <button x-on:click="
                         editModal = true; 
                         editAction = '{{ route('app.clientes.update', $client->id) }}';
@@ -206,6 +234,77 @@
     <button x-on:click="openModal = true" class="md:hidden fixed bottom-6 right-6 w-14 h-14 bg-barber-accent hover:bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center z-40 transition-transform active:scale-95">
         <i data-lucide="plus" class="w-6 h-6"></i>
     </button>
+
+    <!-- MODAL DE EXPORTAR -->
+    <div x-show="exportModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div x-show="exportModal" x-transition.opacity class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity" x-on:click="exportModal = false"></div>
+
+        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            <div x-show="exportModal"
+                x-transition:enter="ease-out duration-300"
+                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                x-transition:leave="ease-in duration-200"
+                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                class="relative transform overflow-hidden rounded-2xl bg-white dark:bg-barber-card-dark text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-slate-200 dark:border-slate-700/50">
+
+                <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700/50 flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-slate-900 dark:text-white" x-text="exportSingleAction !== '' ? 'Exportar Cliente' : 'Exportar Reporte General'"></h3>
+                    <button type="button" x-on:click="exportModal = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <div class="px-6 py-6 space-y-3">
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mb-4 text-center">
+                        <span x-show="exportSingleAction === ''">Selecciona el formato para descargar el reporte con los filtros actuales.</span>
+                        <span x-show="exportSingleAction !== ''">Selecciona el formato para descargar la ficha de este cliente.</span>
+                    </p>
+
+                    <!-- OPCIÓN PDF -->
+                    <template x-if="exportSingleAction === ''">
+                        <a href="{{ route('app.clientes.pdf-general', request()->all()) }}" class="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors border border-red-200 dark:border-red-800">
+                            <i data-lucide="file-text" class="w-6 h-6"></i>
+                            <div>
+                                <p class="font-bold">Exportar a PDF</p>
+                                <p class="text-xs">Ideal para imprimir o enviar por correo.</p>
+                            </div>
+                        </a>
+                    </template>
+                    <template x-if="exportSingleAction !== ''">
+                        <a :href="'/app/clientes/' + exportSingleAction + '/pdf'" class="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors border border-red-200 dark:border-red-800">
+                            <i data-lucide="file-text" class="w-6 h-6"></i>
+                            <div>
+                                <p class="font-bold">Exportar a PDF</p>
+                                <p class="text-xs">Ficha del cliente individual.</p>
+                            </div>
+                        </a>
+                    </template>
+
+                    <!-- OPCIÓN EXCEL -->
+                    <template x-if="exportSingleAction === ''">
+                        <a href="{{ route('app.clientes.export-general', request()->all()) }}" class="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-xl hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors border border-green-200 dark:border-green-800">
+                            <i data-lucide="file-spreadsheet" class="w-6 h-6"></i>
+                            <div>
+                                <p class="font-bold">Exportar a Excel</p>
+                                <p class="text-xs">Ideal para análisis o contabilidad.</p>
+                            </div>
+                        </a>
+                    </template>
+                    <template x-if="exportSingleAction !== ''">
+                        <a :href="'/app/clientes/' + exportSingleAction + '/excel'" class="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-xl hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors border border-green-200 dark:border-green-800">
+                            <i data-lucide="file-spreadsheet" class="w-6 h-6"></i>
+                            <div>
+                                <p class="font-bold">Exportar a Excel</p>
+                                <p class="text-xs">Datos del cliente individual.</p>
+                            </div>
+                        </a>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- MODAL DE CREACIÓN -->
     <div x-show="openModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
@@ -274,6 +373,7 @@
             </div>
         </div>
     </div>
+
     <!-- MODAL DE EDICIÓN -->
     <div x-show="editModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div x-show="editModal" x-transition.opacity class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity"></div>
