@@ -30,14 +30,18 @@ WORKDIR /app
 # Copiar archivos del proyecto
 COPY . /app
 
-# Instalar dependencias de PHP (ignorando scripts para evitar errores)
+# Instalar dependencias de PHP
 RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs
 
-# Instalar dependencias de Node y compilar los estilos (Tailwind/Vite)
+# Crear el archivo .env para que Vite sepa qué URL usar al compilar
+RUN echo "VITE_APP_URL=https://korteo-production.up.railway.app" > .env
+
+# Instalar dependencias de Node y compilar los estilos
 RUN npm install && npm run build
 
-# Dar permisos a storage
+# Dar permisos a storage y enlazar
 RUN chmod -R 775 storage bootstrap/cache
+RUN php artisan storage:link || true
 
 # Exponer el puerto
 EXPOSE 8000
