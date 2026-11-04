@@ -9,6 +9,13 @@
     <title>@yield('title', 'Panel') — {{ auth()->user()->barbershop->nombre ?? 'Korteo' }}</title>
     <link rel="icon" type="image/png" href="{{ asset('logos/favicon.png') }}">
 
+    <!-- Etiquetas para PWA (Instalar como App) -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#2563EB">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Korteo">
+
     <!-- 1. Flatpickr CDN (Se carga primero) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
