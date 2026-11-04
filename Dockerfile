@@ -33,10 +33,14 @@ COPY . /app
 # Instalar dependencias de PHP
 RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs
 
-# Crear el archivo .env para que Vite sepa qué URL usar al compilar
+# FORZAR LA CREACIÓN DEL ARCHIVO .ENV
 RUN echo "VITE_APP_URL=https://korteo-production.up.railway.app" > .env
+RUN echo "APP_KEY=base64:Mkjt1SM/8vO8hZWKrRpdL1LqdICMIHrx5mq1k+85zls=" >> .env
+RUN echo "APP_URL=https://korteo-production.up.railway.app" >> .env
+RUN echo "APP_ENV=production" >> .env
+RUN echo "APP_DEBUG=true" >> .env
 
-# Instalar dependencias de Node y compilar los estilos
+# Compilar estilos (Vite)
 RUN npm install && npm run build
 
 # Dar permisos a storage y enlazar
