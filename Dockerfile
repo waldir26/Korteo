@@ -41,13 +41,13 @@ RUN echo "APP_DEBUG=true" >> .env
 RUN echo "APP_URL=https://korteo-production.up.railway.app" >> .env
 RUN echo "VITE_APP_URL=https://korteo-production.up.railway.app" >> .env
 
-# Conexión a MySQL (Usando los datos de tu panel de Railway)
+# Conexión a MySQL (Con la contraseña EXACTA)
 RUN echo "DB_CONNECTION=mysql" >> .env
 RUN echo "DB_HOST=mysql.railway.internal" >> .env
 RUN echo "DB_PORT=3306" >> .env
 RUN echo "DB_DATABASE=railway" >> .env
 RUN echo "DB_USERNAME=root" >> .env
-RUN echo "DB_PASSWORD=FiUKFvPlvBGwabbnhbvTIXRMVVmTmqk" >> .env
+RUN echo "DB_PASSWORD=FIUKFvPIvBGwabbnhbvTIXRWWVVmTmqK" >> .env
 
 # Otras variables necesarias
 RUN echo "SESSION_DRIVER=database" >> .env
