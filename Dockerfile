@@ -20,7 +20,7 @@ RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
 # Instalar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Instalar Node.js (Necesario para Vite)
+# Instalar Node.js
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs
 
@@ -33,14 +33,28 @@ COPY . /app
 # Instalar dependencias de PHP
 RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs
 
-# FORZAR LA CREACIÓN DEL ARCHIVO .ENV
-RUN echo "VITE_APP_URL=https://korteo-production.up.railway.app" > .env
-RUN echo "APP_KEY=base64:Mkjt1SM/8vO8hZWKrRpdL1LqdICMIHrx5mq1k+85zls=" >> .env
-RUN echo "APP_URL=https://korteo-production.up.railway.app" >> .env
+# FORZAR LA CREACIÓN DEL ARCHIVO .ENV CON MYSQL INCLUIDO
+RUN echo "APP_NAME=Korteo" > .env
 RUN echo "APP_ENV=production" >> .env
+RUN echo "APP_KEY=base64:Mkjt1SM/8vO8hZWKrRpdL1LqdICMIHrx5mq1k+85zls=" >> .env
 RUN echo "APP_DEBUG=true" >> .env
+RUN echo "APP_URL=https://korteo-production.up.railway.app" >> .env
+RUN echo "VITE_APP_URL=https://korteo-production.up.railway.app" >> .env
 
-# Compilar estilos (Vite)
+# Conexión a MySQL (Usando los datos de tu panel de Railway)
+RUN echo "DB_CONNECTION=mysql" >> .env
+RUN echo "DB_HOST=mysql.railway.internal" >> .env
+RUN echo "DB_PORT=3306" >> .env
+RUN echo "DB_DATABASE=railway" >> .env
+RUN echo "DB_USERNAME=root" >> .env
+RUN echo "DB_PASSWORD=FiUKFvPlvBGwabbnhbvTIXRMVVmTmqk" >> .env
+
+# Otras variables necesarias
+RUN echo "SESSION_DRIVER=database" >> .env
+RUN echo "CACHE_STORE=database" >> .env
+RUN echo "QUEUE_CONNECTION=database" >> .env
+
+# Compilar estilos
 RUN npm install && npm run build
 
 # Dar permisos a storage y enlazar
