@@ -1,8 +1,8 @@
 [phases.setup]
-nixPkgs = ["php81", "php81Extensions.pdo", "php81Extensions.pdo_mysql", "php81Extensions.mbstring", "php81Extensions.tokenizer", "php81Extensions.xml", "php81Extensions.ctype", "php81Extensions.json", "php81Extensions.bcmath", "php81Extensions.openssl", "php81Extensions.curl", "php81Extensions.fileinfo", "php81Extensions.gd", "php81Extensions.zip"]
+nixPkgs = ["php83", "php83Extensions.pdo", "php83Extensions.pdo_mysql", "php83Extensions.mbstring", "php83Extensions.tokenizer", "php83Extensions.xml", "php83Extensions.ctype", "php83Extensions.json", "php83Extensions.bcmath", "php83Extensions.openssl", "php83Extensions.curl", "php83Extensions.fileinfo", "php83Extensions.gd", "php83Extensions.zip"]
 
 [phases.install]
-cmds = ["composer install --no-dev --optimize-autoloader"]
+cmds = ["composer install --no-dev --optimize-autoloader", "npm install", "npm run build"]
 
 [start]
 cmd = "php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"
