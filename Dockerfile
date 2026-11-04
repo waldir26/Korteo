@@ -33,15 +33,14 @@ COPY . /app
 # Instalar dependencias de PHP
 RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs
 
-# FORZAR LA CREACIÓN DEL ARCHIVO .ENV CON MYSQL INCLUIDO
+# CREAR EL ARCHIVO .ENV CON TODAS LAS VARIABLES
 RUN echo "APP_NAME=Korteo" > .env
 RUN echo "APP_ENV=production" >> .env
 RUN echo "APP_KEY=base64:Mkjt1SM/8vO8hZWKrRpdL1LqdICMIHrx5mq1k+85zls=" >> .env
 RUN echo "APP_DEBUG=true" >> .env
 RUN echo "APP_URL=https://korteo-production.up.railway.app" >> .env
-RUN echo "VITE_APP_URL=https://korteo-production.up.railway.app" >> .env
 
-# Conexión a MySQL (Con la contraseña EXACTA)
+# CONEXIÓN A MYSQL
 RUN echo "DB_CONNECTION=mysql" >> .env
 RUN echo "DB_HOST=mysql.railway.internal" >> .env
 RUN echo "DB_PORT=3306" >> .env
@@ -49,17 +48,21 @@ RUN echo "DB_DATABASE=railway" >> .env
 RUN echo "DB_USERNAME=root" >> .env
 RUN echo "DB_PASSWORD=FIUKFvPIvBGwabbnhbvTIXRWWVVmTmqK" >> .env
 
-# Otras variables necesarias
+# VARIABLES DE SESIÓN Y CACHÉ
 RUN echo "SESSION_DRIVER=database" >> .env
 RUN echo "CACHE_STORE=database" >> .env
 RUN echo "QUEUE_CONNECTION=database" >> .env
 
-# Compilar estilos
+# FORZAR A VITE A COMPILAR CON LA URL DE RAILWAY
+RUN echo "VITE_APP_URL=https://korteo-production.up.railway.app" > .env.production
 RUN npm install && npm run build
 
 # Dar permisos a storage y enlazar
 RUN chmod -R 775 storage bootstrap/cache
 RUN php artisan storage:link || true
+
+# LIMPIAR CACHÉ DE LARAVEL (Por si acaso)
+RUN php artisan optimize:clear
 
 # Exponer el puerto
 EXPOSE 8000
